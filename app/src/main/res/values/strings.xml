@@ -1,0 +1,51 @@
+<resources>
+    <string name="app_name">LG TV Remote</string>
+    <string name="title_remote">Remote Control</string>
+
+    <string name="status_initial">Scan your network or add a TV manually</string>
+    <string name="status_scanning">Scanning for TVs…</string>
+    <string name="status_scan_found">%1$d TV(s) found</string>
+    <string name="status_none_found">No TVs found. Check that the TV is on and connected to the same Wi‑Fi, or add it manually.</string>
+
+    <string name="scan">Scan</string>
+    <string name="add_manually">Add manually</string>
+    <string name="add_tv">Add TV manually</string>
+    <string name="add_tv_name">TV name</string>
+    <string name="add_tv_ip">TV IP address (e.g. 192.168.1.50)</string>
+    <string name="add_tv_hint">Add TV</string>
+    <string name="cancel">Cancel</string>
+    <string name="connect">Connect</string>
+    <string name="connecting">Connecting…</string>
+    <string name="connecting_to">Connecting to %1$s…</string>
+    <string name="pairing">Pairing…</string>
+    <string name="status_connected">Connected</string>
+    <string name="status_paired">Paired</string>
+    <string name="status_not_paired">Not paired</string>
+    <string name="status_offline">Offline</string>
+
+    <string name="pairing_title">Enter the code shown on the TV</string>
+    <string name="pairing_message">Your TV should now be displaying a 4‑digit confirmation code. Enter it below to allow this app to control the TV.</string>
+    <string name="pairing_hint">Confirmation code</string>
+    <string name="pairing_confirm">Allow</string>
+
+    <string name="remote_disconnected">Connection to the TV was lost</string>
+    <string name="remote_error">Connection error: %1$s</string>
+
+    <string name="volume">Volume</string>
+    <string name="channel">Channel</string>
+    <string name="touchpad">Touchpad</string>
+    <string name="touchpad_hint">Drag to move the cursor · Tap to click · Two‑finger drag to scroll</string>
+    <string name="mute">Mute</string>
+    <string name="unmute">Unmute</string>
+    <string name="home">Home</string>
+    <string name="back">Back</string>
+    <string name="power_off">Turn off</string>
+    <string name="power_confirm_title">Turn off the TV?</string>
+    <string name="power_confirm_message">Are you sure you want to turn off %1$s?</string>
+    <string name="turn_off">Turn off</string>
+    <string name="ok">OK</string>
+    <string name="volume_percent">%1$d%%</string>
+    <string name="channel_number">CH %1$d</string>
+    <string name="device_name">%1$s</string>
+    <string name="unknown_tv">LG TV</string>
+</resources>

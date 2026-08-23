@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#0F1115</color>
+    <color name="surface">#1A1D24</color>
+    <color name="surface_alt">#232833</color>
+    <color name="surface_press">#2C3340</color>
+    <color name="border">#2A3040</color>
+    <color name="accent">#38B6FF</color>
+    <color name="accent_dark">#1F6FB0</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#8A93A6</color>
+    <color name="danger">#FF5A5A</color>
+    <color name="success">#34C77B</color>
+    <color name="warning">#FFB74D</color>
+    <color name="black">#000000</color>
+    <color name="ic_launcher_background">#0F1115</color>
+    <color name="touchpad_hint">#55607A</color>
+</resources>
