@@ -63,12 +63,14 @@ LG webOS exposes a local control API over WebSockets.
   "type": "register",
   "id": "register_0",
   "payload": {
-    "forcePairing": false,
+    "forcePairing": true,
     "pairingType": "PROMPT",
     "manifest": { "manifestVersion": 1, "appVersion": "1.0.0", "signed": { ... } }
   }
 }
 ```
+
+`forcePairing` must be `true` when the app has no stored `client-key` yet (first-time connection) so the TV shows its confirmation PIN; otherwise many firmwares silently close the socket. Once a key exists, it is included in the register message and `forcePairing` is `false`.
 
 4. If the TV answers without a `client-key`, it is showing a PIN on screen; send the same register message with `"pairingKey": "<4-digit-code>"`. The TV then returns a `client-key`, which the app persists and re-sends on future connections — so no code is ever needed again.
 

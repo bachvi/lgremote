@@ -138,7 +138,7 @@ public class LgTvClient extends WebSocketClient {
     private void sendRegister() {
         JSONObject payload = new JSONObject();
         try {
-            payload.put("forcePairing", false);
+            payload.put("forcePairing", clientKey.isEmpty());
             payload.put("pairingType", "PROMPT");
             payload.put("manifest", new JSONObject(MANIFEST));
             if (!clientKey.isEmpty()) {
@@ -162,7 +162,7 @@ public class LgTvClient extends WebSocketClient {
     public void pairWithPin(String pin) {
         JSONObject payload = new JSONObject();
         try {
-            payload.put("forcePairing", false);
+            payload.put("forcePairing", true);
             payload.put("pairingType", "PROMPT");
             payload.put("pairingKey", pin);
             payload.put("manifest", new JSONObject(MANIFEST));
