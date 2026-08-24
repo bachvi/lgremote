@@ -72,7 +72,11 @@ LG webOS exposes a local control API over WebSockets.
 
 `forcePairing` must be `true` when the app has no stored `client-key` yet (first-time connection) so the TV shows its confirmation PIN; otherwise many firmwares silently close the socket. Once a key exists, it is included in the register message and `forcePairing` is `false`.
 
+The manifest `signed.serial` must be **unique per register attempt**: webOS 6.0+ rejects (and closes the socket on) a register whose serial was already used to issue a `client-key` on the TV. This happens when a second remote app ships the same manifest/serial, or when re-pairing after forgetting a TV. The app therefore generates a random serial for every attempt.
+
 4. If the TV answers without a `client-key`, it is showing a PIN on screen; send the same register message with `"pairingKey": "<4-digit-code>"`. The TV then returns a `client-key`, which the app persists and re-sends on future connections — so no code is ever needed again.
+
+5. If a TV fails to pair (e.g. a stale key from another app), long-press it in the list to **Forget** it: this clears the stored `client-key` and forces a fresh pairing prompt on the next connect.
 
 5. Send commands as requests:
 

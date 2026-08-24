@@ -8,6 +8,7 @@ import org.java_websocket.drafts.Draft_6455;
 import org.java_websocket.extensions.IExtension;
 import org.java_websocket.handshake.ServerHandshake;
 import org.java_websocket.protocols.Protocol;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -15,6 +16,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -26,22 +28,37 @@ public class LgTvClient extends WebSocketClient {
     /** The 4-digit code typed on the TV is shown in this constant. */
     private static final String PAIRING_ID = "register_0";
 
-    private static final String MANIFEST = "{"
-            + "\"manifestVersion\":1,"
-            + "\"appVersion\":\"1.0.0\","
-            + "\"signed\":{"
-            + "\"created\":\"20260101\","
-            + "\"appId\":\"com.example.lgremote\","
-            + "\"vendorId\":\"com.example\","
-            + "\"localizedAppNames\":{\"\":\"LG TV Remote\"},"
-            + "\"localizedVendorNames\":{\"\":\"LG Remote\"},"
-            + "\"permissions\":[\"LAUNCH\",\"APP_TO_APP\",\"CONTROL_AUDIO\",\"CONTROL_INPUT\","
-            + "\"READ_INPUT_DEVICE_LIST\",\"WRITE_NOTIFICATION_ALERT\",\"CONTROL_POWER\"],"
-            + "\"serial\":\"7a2b9c41\""
-            + "},"
-            + "\"permissions\":[\"LAUNCH\",\"APP_TO_APP\",\"CONTROL_AUDIO\",\"CONTROL_INPUT\","
-            + "\"READ_INPUT_DEVICE_LIST\",\"WRITE_NOTIFICATION_ALERT\",\"CONTROL_POWER\"]"
-            + "}";
+    /**
+     * LG WebOS (6.0+) refuses a register request whose manifest {@code serial}
+     * has already been used to issue a client-key on the TV — it simply closes
+     * the socket ("connection closed"). Because this same manifest was used by
+     * other remote apps, a fresh random serial is generated per attempt.
+     */
+    private static JSONObject buildManifest() {
+        JSONObject signed = new JSONObject();
+        JSONObject manifest = new JSONObject();
+        try {
+            JSONArray permissions = new JSONArray();
+            for (String p : new String[]{"LAUNCH", "APP_TO_APP", "CONTROL_AUDIO", "CONTROL_INPUT",
+                    "READ_INPUT_DEVICE_LIST", "WRITE_NOTIFICATION_ALERT", "CONTROL_POWER"}) {
+                permissions.put(p);
+            }
+            signed.put("created", "20260101");
+            signed.put("appId", "com.example.lgremote");
+            signed.put("vendorId", "com.example");
+            signed.put("localizedAppNames", new JSONObject().put("", "LG TV Remote"));
+            signed.put("localizedVendorNames", new JSONObject().put("", "LG Remote"));
+            signed.put("permissions", permissions);
+            signed.put("serial", UUID.randomUUID().toString().replace("-", ""));
+
+            manifest.put("manifestVersion", 1);
+            manifest.put("appVersion", "1.0.0");
+            manifest.put("signed", signed);
+            manifest.put("permissions", permissions);
+        } catch (JSONException ignored) {
+        }
+        return manifest;
+    }
 
     public interface Listener {
         void onConnected();
@@ -140,7 +157,7 @@ public class LgTvClient extends WebSocketClient {
         try {
             payload.put("forcePairing", clientKey.isEmpty());
             payload.put("pairingType", "PROMPT");
-            payload.put("manifest", new JSONObject(MANIFEST));
+            payload.put("manifest", buildManifest());
             if (!clientKey.isEmpty()) {
                 payload.put("client-key", clientKey);
             }
@@ -165,7 +182,7 @@ public class LgTvClient extends WebSocketClient {
             payload.put("forcePairing", true);
             payload.put("pairingType", "PROMPT");
             payload.put("pairingKey", pin);
-            payload.put("manifest", new JSONObject(MANIFEST));
+            payload.put("manifest", buildManifest());
             if (!clientKey.isEmpty()) {
                 payload.put("client-key", clientKey);
             }
