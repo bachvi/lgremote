@@ -18,4 +18,19 @@
         <item name="android:insetBottom">0dp</item>
         <item name="android:minHeight">52dp</item>
     </style>
+
+    <style name="CompactButton" parent="RemoteButton">
+        <item name="android:minHeight">40dp</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">14dp</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="CompactTextButton" parent="Widget.Material3.Button.TextButton">
+        <item name="android:minHeight">40dp</item>
+        <item name="android:paddingStart">10dp</item>
+        <item name="android:paddingEnd">10dp</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/danger</item>
+    </style>
 </resources>

@@ -9,6 +9,7 @@ import android.widget.TextView;
 
 import com.example.lgremote.R;
 import com.example.lgremote.data.TvDevice;
+import com.google.android.material.button.MaterialButton;
 
 import java.util.List;
 
@@ -18,9 +19,14 @@ public class TvAdapter extends BaseAdapter {
         void onConnect(TvDevice device);
     }
 
+    public interface OnForgetListener {
+        void onForget(TvDevice device);
+    }
+
     private final List<TvDevice> items;
     private final LayoutInflater inflater;
     private OnConnectListener connectListener;
+    private OnForgetListener forgetListener;
     private String activeIp;
 
     public TvAdapter(LayoutInflater inflater, List<TvDevice> items) {
@@ -30,6 +36,10 @@ public class TvAdapter extends BaseAdapter {
 
     public void setConnectListener(OnConnectListener l) {
         this.connectListener = l;
+    }
+
+    public void setForgetListener(OnForgetListener l) {
+        this.forgetListener = l;
     }
 
     public void setActiveIp(String ip) {
@@ -64,7 +74,8 @@ public class TvAdapter extends BaseAdapter {
         ImageView tvIcon = v.findViewById(R.id.tvIcon);
         TextView name = v.findViewById(R.id.tvName);
         TextView status = v.findViewById(R.id.tvStatus);
-        TextView connect = v.findViewById(R.id.btnConnect);
+        MaterialButton connect = v.findViewById(R.id.btnConnect);
+        MaterialButton forget = v.findViewById(R.id.btnForget);
 
         name.setText(device.getDisplayName());
 
@@ -87,6 +98,13 @@ public class TvAdapter extends BaseAdapter {
         connect.setOnClickListener(v1 -> {
             if (connectListener != null && !isActive) {
                 connectListener.onConnect(device);
+            }
+        });
+
+        forget.setVisibility(View.VISIBLE);
+        forget.setOnClickListener(v12 -> {
+            if (forgetListener != null) {
+                forgetListener.onForget(device);
             }
         });
 

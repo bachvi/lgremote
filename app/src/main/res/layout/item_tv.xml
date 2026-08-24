@@ -45,13 +45,30 @@
             android:textSize="13sp" />
     </LinearLayout>
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnConnect"
-        style="@style/RemoteButton"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:minWidth="0dp"
-        android:text="@string/connect"
-        android:textSize="13sp" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnConnect"
+            style="@style/CompactButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:text="@string/connect" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnForget"
+            style="@style/CompactTextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:minWidth="0dp"
+            android:visibility="gone"
+            android:text="@string/forget_confirm" />
+
+    </LinearLayout>
 
 </LinearLayout>

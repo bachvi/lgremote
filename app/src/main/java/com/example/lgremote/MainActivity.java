@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity
-        implements LgTvConnection.Listener, TvAdapter.OnConnectListener {
+        implements LgTvConnection.Listener, TvAdapter.OnConnectListener, TvAdapter.OnForgetListener {
 
     private TvRepository repository;
     private final List<TvDevice> devices = new ArrayList<>();
@@ -61,6 +61,7 @@ public class MainActivity extends AppCompatActivity
 
         adapter = new TvAdapter(LayoutInflater.from(this), devices);
         adapter.setConnectListener(this);
+        adapter.setForgetListener(this);
         tvList.setAdapter(adapter);
 
         btnScan.setOnClickListener(v -> startScan());
@@ -153,6 +154,24 @@ public class MainActivity extends AppCompatActivity
     // ------------------------------------------------------------------
     // Manual add
     // ------------------------------------------------------------------
+
+    private void confirmForget(TvDevice device) {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.forget_title)
+                .setMessage(getString(R.string.forget_message, device.getDisplayName()))
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.forget_confirm, (d, w) -> {
+                    if (connection.getDevice() != null && device.ip != null
+                            && device.ip.equals(connection.getDevice().ip)) {
+                        connection.disconnect();
+                    }
+                    devices.remove(device);
+                    adapter.notifyDataSetChanged();
+                    updateEmptyState();
+                    repository.save(new ArrayList<>(devices));
+                })
+                .show();
+    }
 
     private void showAddTvDialog() {
         View view = getLayoutInflater().inflate(R.layout.dialog_add_tv, null);
@@ -347,5 +366,10 @@ public class MainActivity extends AppCompatActivity
     @Override
     public void onConnect(TvDevice device) {
         connectToTv(device);
+    }
+
+    @Override
+    public void onForget(TvDevice device) {
+        confirmForget(device);
     }
 }
