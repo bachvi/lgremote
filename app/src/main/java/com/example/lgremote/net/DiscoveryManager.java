@@ -41,7 +41,7 @@ public class DiscoveryManager {
 
     private static final String SSDP_ADDRESS = "239.255.255.250";
     private static final int SSDP_PORT = 1900;
-    private static final int SCAN_DURATION_MS = 3500;
+    private static final int SCAN_DURATION_MS = 5000;
     private static final String TARGET_MEDIA_RENDERER = "urn:schemas-upnp-org:device:MediaRenderer:1";
 
     private final Context context;
@@ -82,8 +82,15 @@ public class DiscoveryManager {
                 socket.setSoTimeout(1200);
 
                 InetAddress group = InetAddress.getByName(SSDP_ADDRESS);
-                sendSearch(socket, group, TARGET_MEDIA_RENDERER);
-                sendSearch(socket, group, "ssdp:all");
+                for (int attempt = 0; attempt < 3 && scanning; attempt++) {
+                    sendSearch(socket, group, TARGET_MEDIA_RENDERER);
+                    sendSearch(socket, group, "ssdp:all");
+                    try {
+                        Thread.sleep(150);
+                    } catch (InterruptedException ie) {
+                        break;
+                    }
+                }
 
                 long deadline = System.currentTimeMillis() + SCAN_DURATION_MS;
                 while (scanning && System.currentTimeMillis() < deadline) {
