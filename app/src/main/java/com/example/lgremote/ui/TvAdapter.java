@@ -28,6 +28,7 @@ public class TvAdapter extends BaseAdapter {
     private OnConnectListener connectListener;
     private OnForgetListener forgetListener;
     private String activeIp;
+    private String connectingIp;
 
     public TvAdapter(LayoutInflater inflater, List<TvDevice> items) {
         this.inflater = inflater;
@@ -44,6 +45,11 @@ public class TvAdapter extends BaseAdapter {
 
     public void setActiveIp(String ip) {
         this.activeIp = ip;
+        notifyDataSetChanged();
+    }
+
+    public void setConnectingIp(String ip) {
+        this.connectingIp = ip;
         notifyDataSetChanged();
     }
 
@@ -87,16 +93,20 @@ public class TvAdapter extends BaseAdapter {
         status.setText(sb.toString());
 
         boolean isActive = device.ip != null && device.ip.equals(activeIp);
+        boolean isConnecting = device.ip != null && device.ip.equals(connectingIp);
         if (isActive) {
             connect.setText("Connected");
             tvIcon.setAlpha(1f);
+        } else if (isConnecting) {
+            connect.setText(R.string.connecting);
+            tvIcon.setAlpha(0.8f);
         } else {
             connect.setText(R.string.connect);
             tvIcon.setAlpha(0.7f);
         }
 
         connect.setOnClickListener(v1 -> {
-            if (connectListener != null && !isActive) {
+            if (connectListener != null && !isActive && !isConnecting) {
                 connectListener.onConnect(device);
             }
         });
@@ -109,7 +119,7 @@ public class TvAdapter extends BaseAdapter {
         });
 
         v.setOnClickListener(v12 -> {
-            if (connectListener != null && !isActive) {
+            if (connectListener != null && !isActive && !isConnecting) {
                 connectListener.onConnect(device);
             }
         });

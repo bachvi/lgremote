@@ -76,6 +76,7 @@ public class MainActivity extends AppCompatActivity
         connection.setListener(this);
         adapter.setActiveIp(connection.isConnected() && connection.getDevice() != null
                 ? connection.getDevice().ip : null);
+        adapter.setConnectingIp(null);
         if (!firstScanDone) {
             firstScanDone = true;
             if (devices.isEmpty()) {
@@ -230,7 +231,8 @@ public class MainActivity extends AppCompatActivity
     // ------------------------------------------------------------------
 
     private void connectToTv(TvDevice tv) {
-        adapter.setActiveIp(tv.ip);
+        adapter.setConnectingIp(tv.ip);
+        adapter.setActiveIp(null);
         showProgress(getString(R.string.connecting_to, tv.getDisplayName()));
         connection.connect(tv);
     }
@@ -336,11 +338,13 @@ public class MainActivity extends AppCompatActivity
                     pairingDialog = null;
                 }
                 adapter.setActiveIp(connection.getDevice() != null ? connection.getDevice().ip : null);
+                adapter.setConnectingIp(null);
                 onConnected();
                 break;
             case LgTvConnection.STATE_DISCONNECTED:
                 dismissProgress();
                 adapter.setActiveIp(null);
+                adapter.setConnectingIp(null);
                 break;
             case LgTvConnection.STATE_CONNECTING:
             default:
@@ -357,6 +361,7 @@ public class MainActivity extends AppCompatActivity
         dismissProgress();
         Toast.makeText(this, getString(R.string.remote_error, message), Toast.LENGTH_LONG).show();
         adapter.setActiveIp(null);
+        adapter.setConnectingIp(null);
     }
 
     // ------------------------------------------------------------------

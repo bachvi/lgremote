@@ -33,6 +33,8 @@ public class LgTvConnection {
 
     private static LgTvConnection sInstance;
 
+    private static final int MAX_CONNECT_ATTEMPTS = 3;
+
     private final TvRepository repository;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -42,6 +44,7 @@ public class LgTvConnection {
     private Listener listener;
     private int state = STATE_DISCONNECTED;
     private int pointerAttempts = 0;
+    private int connectAttempts = 0;
 
     public static synchronized LgTvConnection get(Context context) {
         if (sInstance == null) {
@@ -78,48 +81,113 @@ public class LgTvConnection {
         this.device = tv;
         closeClients();
         pointerAttempts = 0;
+        connectAttempts = 0;
         setState(STATE_CONNECTING);
+        connectAttempt(0);
+    }
 
-        LgTvClient client = LgTvClient.connectTo(tv.ip, tv.clientKey, new LgTvClient.Listener() {
-            @Override
-            public void onConnected() {
-                // Register handshake follows automatically.
-            }
+    /**
+     * Connect to the main control socket, trying each scheme/port in turn.
+     * Newer webOS serves plain WS on 3000 (and WSS on 3001) while older
+     * firmware uses WSS on 3000, so the schemes are attempted in that order
+     * and only advanced if the socket dies before the handshake opens.
+     */
+    private void connectAttempt(final int attempt) {
+        connectAttempts = attempt;
+        final String scheme;
+        final int port;
+        switch (attempt) {
+            case 0:
+                scheme = "ws";
+                port = 3000;
+                break;
+            case 1:
+                scheme = "wss";
+                port = 3001;
+                break;
+            default:
+                scheme = "wss";
+                port = 3000;
+                break;
+        }
+        final boolean lastAttempt = attempt >= MAX_CONNECT_ATTEMPTS - 1;
 
-            @Override
-            public void onPairingRequired() {
-                setState(STATE_PAIRING);
-            }
+        LgTvClient client = LgTvClient.connectTo(device.ip, scheme, port, device.clientKey,
+                new LgTvClient.Listener() {
+                    private boolean opened = false;
 
-            @Override
-            public void onPaired(String newKey) {
-                if (newKey != null && !newKey.isEmpty() && !newKey.equals(device.clientKey)) {
-                    saveClientKey(newKey);
-                }
-                setState(STATE_CONNECTED);
-                openPointer();
-            }
+                    @Override
+                    public void onConnected() {
+                        opened = true;
+                    }
 
-            @Override
-            public void onDisconnected() {
-                if (state == STATE_CONNECTING || state == STATE_CONNECTED) {
-                    setState(STATE_DISCONNECTED);
-                }
-            }
+                    @Override
+                    public void onPairingRequired() {
+                        setState(STATE_PAIRING);
+                    }
 
-            @Override
-            public void onError(String message) {
-                if (state == STATE_CONNECTING) {
-                    setState(STATE_DISCONNECTED);
-                    notifyError(message);
-                }
-            }
+                    @Override
+                    public void onPaired(String newKey) {
+                        if (newKey != null && !newKey.isEmpty() && !newKey.equals(device.clientKey)) {
+                            saveClientKey(newKey);
+                        }
+                        setState(STATE_CONNECTED);
+                        openPointer();
+                    }
 
-            @Override
-            public void onVolume(int volume, boolean muted) {
-                notifyVolume(volume, muted);
+                    @Override
+                    public void onDisconnected() {
+                        if (connectAttempts != attempt) {
+                            return;
+                        }
+                        if (state == STATE_CONNECTING && !opened && !lastAttempt) {
+                            connectAttempt(attempt + 1);
+                        } else if (state == STATE_CONNECTING || state == STATE_CONNECTED) {
+                            setState(STATE_DISCONNECTED);
+                        } else if (state == STATE_PAIRING) {
+                            setState(STATE_DISCONNECTED);
+                            notifyError("Connection to TV closed during pairing");
+                        }
+                    }
+
+                    @Override
+                    public void onPairingError(String message) {
+                        if (connectAttempts != attempt) {
+                            return;
+                        }
+                        if (state == STATE_CONNECTING || state == STATE_PAIRING) {
+                            setState(STATE_DISCONNECTED);
+                            notifyError(message);
+                        }
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        if (connectAttempts != attempt) {
+                            return;
+                        }
+                        if (state == STATE_CONNECTING && !opened && !lastAttempt) {
+                            connectAttempt(attempt + 1);
+                        } else if (state == STATE_CONNECTING) {
+                            setState(STATE_DISCONNECTED);
+                            notifyError(message);
+                        }
+                    }
+
+                    @Override
+                    public void onVolume(int volume, boolean muted) {
+                        notifyVolume(volume, muted);
+                    }
+                });
+        if (client == null) {
+            if (!lastAttempt) {
+                connectAttempt(attempt + 1);
+            } else {
+                setState(STATE_DISCONNECTED);
+                notifyError("Unable to connect to TV");
             }
-        });
+            return;
+        }
         this.tvClient = client;
     }
 
