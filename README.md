@@ -56,18 +56,16 @@ LG webOS exposes a local control API over WebSockets.
 
 The app connects with subprotocol `lgtv` and an `Origin: http://localhost` header. The TV uses a self-signed certificate, so a trust-all TLS context is used. Newer webOS serves plain WS on port **3000** (and WSS on **3001**), while older firmware uses WSS on **3000**, so the app tries `ws://3000` → `wss://3001` → `wss://3000` in order, advancing only when the socket dies before the handshake opens.
 
-The handshake is driven step-by-step, matching the reference Home Assistant client:
+The register handshake:
 
-1. After the socket opens, the client starts a `hello` exchange: it sends `{"id":"hello","type":"hello","payload":{}}` and waits for the TV's `hello` reply.
-2. On the `hello` reply it sends a `systeminfo/getSystemInfo` request (webOS 6.0+ requires system info before registration).
-3. Once the system-info response arrives, register the app:
+1. As soon as the socket opens, register the app:
 
 ```json
 {
   "type": "register",
   "id": "register_0",
   "payload": {
-    "forcePairing": false,
+    "forcePairing": true,
     "pairingType": "PROMPT",
     "manifest": { "manifestVersion": 1, "appVersion": "1.1", "permissions": [ ... ] },
     "client-key": "..."  // only when a key is already stored
@@ -75,13 +73,13 @@ The handshake is driven step-by-step, matching the reference Home Assistant clie
 }
 ```
 
-The initial register always uses `forcePairing: false`. On webOS 6.0+ the TV replies with a PROMPT and then completes registration itself — the user confirms directly on the TV screen and the TV returns a `registered` message with a new `client-key`. On firmware that still uses the classic flow, the user enters the on-screen code and the app re-registers with `"forcePairing": true` and `"pairingKey": "<code>"`.
+`forcePairing` is `true` when the app has no stored `client-key` yet: some firmware silently closes the socket if you register an unpaired client without forcing the prompt. Once a key exists it is included in the register message and `forcePairing` is `false`.
 
-The manifest uses the current (non-`signed`) format that webOS 6.0+ accepts; the legacy `signed`/`serial`/`signatures` block is omitted because newer firmware rejects a register whose serial was already used to issue a `client-key` on the TV.
+2. If the TV answers without a `client-key`, it is showing a confirmation prompt / PIN on screen; the app shows a dialog. Enter the code (or simply confirm on the TV if no code is shown) and the app re-registers with `"forcePairing": true` and `"pairingKey": "<code>"`. The TV returns a `client-key`, which the app persists and re-sends on future connections — so no confirmation is ever needed again.
 
-4. The `client-key` returned by the TV is persisted and re-sent on future connections — so no confirmation is ever needed again.
+3. The manifest includes a `signed` block with a freshly generated random `serial` (unique per app process). A fixed well-known serial (e.g. `7a2b9c41` from the public SDK samples) causes webOS 6.0+ to treat the client as already paired by another app sharing that serial and close the socket; a unique serial avoids this while still satisfying older firmware that expects the `signed` block.
 
-5. If a TV fails to pair (e.g. a stale key from another app), tap the **Forget** button on its row: this clears the stored `client-key` and forces a fresh pairing prompt on the next connect.
+4. If a TV fails to pair (e.g. a stale key from another app), tap the **Forget** button on its row: this clears the stored `client-key` and forces a fresh pairing prompt on the next connect.
 
 5. Send commands as requests:
 

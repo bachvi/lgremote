@@ -3,6 +3,7 @@ package com.example.lgremote.net;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import com.example.lgremote.data.TvDevice;
 import com.example.lgremote.data.TvRepository;
@@ -17,6 +18,8 @@ import java.util.List;
  * current connection state.
  */
 public class LgTvConnection {
+
+    private static final String TAG = "LgTvConnection";
 
     public static final int STATE_DISCONNECTED = 0;
     public static final int STATE_CONNECTING = 1;
@@ -111,6 +114,7 @@ public class LgTvConnection {
                 break;
         }
         final boolean lastAttempt = attempt >= MAX_CONNECT_ATTEMPTS - 1;
+        Log.d(TAG, "connectAttempt " + attempt + " " + scheme + "://" + device.ip + ":" + port);
 
         LgTvClient client = LgTvClient.connectTo(device.ip, scheme, port, device.clientKey,
                 new LgTvClient.Listener() {
@@ -118,16 +122,19 @@ public class LgTvConnection {
 
                     @Override
                     public void onConnected() {
+                        Log.d(TAG, "attempt " + attempt + " socket opened");
                         opened = true;
                     }
 
                     @Override
                     public void onPairingRequired() {
+                        Log.d(TAG, "pairing required");
                         setState(STATE_PAIRING);
                     }
 
                     @Override
                     public void onPaired(String newKey) {
+                        Log.d(TAG, "paired, key=" + (newKey != null && !newKey.isEmpty()));
                         if (newKey != null && !newKey.isEmpty() && !newKey.equals(device.clientKey)) {
                             saveClientKey(newKey);
                         }
@@ -137,6 +144,7 @@ public class LgTvConnection {
 
                     @Override
                     public void onDisconnected() {
+                        Log.d(TAG, "disconnected (attempt " + attempt + ", state " + state + ", opened " + opened + ")");
                         if (connectAttempts != attempt) {
                             return;
                         }
@@ -152,6 +160,7 @@ public class LgTvConnection {
 
                     @Override
                     public void onPairingError(String message) {
+                        Log.e(TAG, "pairing error: " + message);
                         if (connectAttempts != attempt) {
                             return;
                         }
@@ -163,6 +172,7 @@ public class LgTvConnection {
 
                     @Override
                     public void onError(String message) {
+                        Log.e(TAG, "attempt " + attempt + " error: " + message);
                         if (connectAttempts != attempt) {
                             return;
                         }
@@ -385,6 +395,7 @@ public class LgTvConnection {
         if (state == newState) {
             return;
         }
+        Log.d(TAG, "state " + state + " -> " + newState);
         state = newState;
         final Listener l = listener;
         mainHandler.post(() -> {

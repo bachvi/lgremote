@@ -2,6 +2,7 @@ package com.example.lgremote.net;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft_6455;
@@ -16,23 +17,29 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * WebSocket client for the main LG WebOS control socket (wss://&lt;tv&gt;:3000).
+ * WebSocket client for the main LG WebOS control socket.
  * Handles the register / pairing handshake and sending "ssap://" commands.
  */
 public class LgTvClient extends WebSocketClient {
+
+    private static final String TAG = "LgTvClient";
 
     /** The 4-digit code typed on the TV is shown in this constant. */
     private static final String PAIRING_ID = "register_0";
 
     /**
-     * Manifest format used by current webOS firmware (Home Assistant
-     * aiowebostv reference). The legacy {@code signed}/{@code serial} block is
-     * dropped because webOS 6.0+ rejects registers whose serial was already
-     * used to issue a client-key on the TV.
+     * Fresh serial generated once per process. Older webOS reads the manifest's
+     * {@code signed.serial} to identify the app; reusing a well-known serial
+     * (e.g. "7a2b9c41") makes webOS 6.0+ treat the client as already paired by
+     * another app and close the socket. A unique serial avoids that while still
+     * providing the signed block older firmware expects.
      */
+    private static final String SERIAL = UUID.randomUUID().toString().replace("-", "");
+
     private static JSONObject buildManifest() {
         JSONObject manifest = new JSONObject();
         try {
@@ -52,9 +59,18 @@ public class LgTvClient extends WebSocketClient {
                     "WRITE_NOTIFICATION_TOAST", "WRITE_SETTINGS"}) {
                 permissions.put(p);
             }
+            JSONObject signed = new JSONObject();
+            signed.put("created", "20260101");
+            signed.put("appId", "com.example.lgremote");
+            signed.put("vendorId", "com.example");
+            signed.put("localizedAppNames", new JSONObject().put("", "LG TV Remote"));
+            signed.put("localizedVendorNames", new JSONObject().put("", "LG Remote"));
+            signed.put("permissions", permissions);
+            signed.put("serial", SERIAL);
             manifest.put("appVersion", "1.1");
             manifest.put("manifestVersion", 1);
             manifest.put("permissions", permissions);
+            manifest.put("signed", signed);
         } catch (JSONException ignored) {
         }
         return manifest;
@@ -89,23 +105,6 @@ public class LgTvClient extends WebSocketClient {
     private final Map<String, Callback> pendingRequests = new HashMap<>();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    /**
-     * The handshake must proceed in order: client hello, then system info,
-     * then register. The TV usually responds to the client hello, which drives
-     * the next step, but a watchdog forces progress on firmware that never
-     * answers the hello exchange.
-     */
-    private volatile boolean systemInfoSent = false;
-    private volatile boolean registerSent = false;
-    private final Runnable handshakeWatchdog = () -> {
-        if (!registerSent) {
-            if (!systemInfoSent) {
-                sendSystemInfoRequest();
-            }
-            sendRegister();
-        }
-    };
-
     public LgTvClient(URI serverUri, String clientKey, Listener listener) {
         super(serverUri,
                 new Draft_6455(Collections.<IExtension>emptyList(),
@@ -118,27 +117,28 @@ public class LgTvClient extends WebSocketClient {
 
     public static LgTvClient connectTo(String ip, String scheme, int port, String clientKey, Listener listener) {
         try {
+            Log.d(TAG, "connectTo " + scheme + "://" + ip + ":" + port + "/ key=" + (clientKey != null && !clientKey.isEmpty()));
             LgTvClient client = new LgTvClient(new URI(scheme + "://" + ip + ":" + port + "/"), clientKey, listener);
             client.setSocketFactory(SslUtils.trustAllSslSocketFactory());
             client.setConnectionLostTimeout(15);
             client.connect();
             return client;
         } catch (Exception e) {
+            Log.e(TAG, "connectTo failed", e);
             return null;
         }
     }
 
     @Override
     public void onOpen(ServerHandshake handshakedata) {
+        Log.d(TAG, "socket open, sending register");
         listener.onConnected();
-        // Newer webOS versions expect the client to start the hello exchange;
-        // system info must be retrieved before registration.
-        sendClientHello();
-        mainHandler.postDelayed(handshakeWatchdog, 6000);
+        sendRegister();
     }
 
     @Override
     public void onMessage(String message) {
+        Log.d(TAG, "recv: " + message);
         try {
             JSONObject json = new JSONObject(message);
             String type = json.optString("type");
@@ -146,34 +146,32 @@ public class LgTvClient extends WebSocketClient {
             JSONObject payload = json.optJSONObject("payload");
 
             if ("hello".equals(type)) {
-                sendSystemInfoRequest();
+                replyHello();
             } else if ("registered".equals(type)) {
                 handleRegistered(payload);
             } else if ("response".equals(type)) {
                 if (PAIRING_ID.equals(id)) {
                     handlePairingResponse(payload);
-                } else if ("get_sys_info".equals(id)) {
-                    sendRegister();
                 } else {
                     handleCommandResponse(id, payload);
                 }
             } else if ("error".equals(type) && PAIRING_ID.equals(id)) {
                 handlePairingError(payload);
             }
-        } catch (JSONException ignored) {
-            // Malformed message from TV, ignore.
+        } catch (JSONException e) {
+            Log.w(TAG, "Malformed message from TV", e);
         }
     }
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        mainHandler.removeCallbacks(handshakeWatchdog);
+        Log.d(TAG, "socket closed code=" + code + " reason=" + reason + " remote=" + remote);
         mainHandler.post(listener::onDisconnected);
     }
 
     @Override
     public void onError(Exception ex) {
-        mainHandler.removeCallbacks(handshakeWatchdog);
+        Log.e(TAG, "socket error", ex);
         mainHandler.post(() -> listener.onError(ex == null ? "Unknown error" : ex.getMessage()));
     }
 
@@ -182,17 +180,15 @@ public class LgTvClient extends WebSocketClient {
     // ------------------------------------------------------------------
 
     /**
-     * Send the registration request. The initial register uses
-     * {@code forcePairing: false} as the reference client does; the TV replies
-     * with a PROMPT when pairing is needed and completes registration on its
-     * own (or accepts the pairingKey submitted through {@link #pairWithPin}).
+     * Send the registration request. When the app has no stored client-key the
+     * register uses {@code forcePairing: true} so the TV shows its confirmation
+     * prompt; some firmware silently closes the socket otherwise. Once a key
+     * exists it is included and {@code forcePairing} is {@code false}.
      */
     private void sendRegister() {
-        registerSent = true;
-        mainHandler.removeCallbacks(handshakeWatchdog);
         JSONObject payload = new JSONObject();
         try {
-            payload.put("forcePairing", false);
+            payload.put("forcePairing", clientKey.isEmpty());
             payload.put("pairingType", "PROMPT");
             payload.put("manifest", buildManifest());
             if (!clientKey.isEmpty()) {
@@ -203,33 +199,18 @@ public class LgTvClient extends WebSocketClient {
         sendMessage(PAIRING_ID, "register", payload);
     }
 
-    /** Start the hello exchange from the client side (expected by newer firmware). */
-    private void sendClientHello() {
+    /** Reply to a hello initiated by the TV (expected by older firmware). */
+    private void replyHello() {
         JSONObject payload = new JSONObject();
-        sendMessage("hello", "hello", payload);
-    }
-
-    /** webOS 6.0+ requires a system-info request before registration. */
-    private void sendSystemInfoRequest() {
-        if (systemInfoSent) {
-            return;
-        }
-        systemInfoSent = true;
-        JSONObject msg = new JSONObject();
         try {
-            msg.put("id", "get_sys_info");
-            msg.put("type", "request");
-            msg.put("uri", "ssap://systeminfo/getSystemInfo");
-            msg.put("payload", new JSONObject());
+            payload.put("hello", "world");
         } catch (JSONException ignored) {
         }
-        send(msg.toString());
+        sendMessage(null, "hello", payload);
     }
 
     /** Submit the confirmation code shown on the TV screen. */
     public void pairWithPin(String pin) {
-        registerSent = true;
-        mainHandler.removeCallbacks(handshakeWatchdog);
         JSONObject payload = new JSONObject();
         try {
             payload.put("forcePairing", true);
@@ -250,6 +231,7 @@ public class LgTvClient extends WebSocketClient {
         }
         String key = payload.optString("client-key", "");
         if (!key.isEmpty()) {
+            Log.d(TAG, "registered, got client-key");
             mainHandler.post(() -> listener.onPaired(key));
         }
     }
@@ -260,8 +242,10 @@ public class LgTvClient extends WebSocketClient {
         }
         String key = payload.optString("client-key", "");
         if (!key.isEmpty()) {
+            Log.d(TAG, "register response contains client-key");
             mainHandler.post(() -> listener.onPaired(key));
         } else {
+            Log.d(TAG, "register response, pairing required: " + payload.toString());
             mainHandler.post(listener::onPairingRequired);
         }
     }
@@ -269,6 +253,7 @@ public class LgTvClient extends WebSocketClient {
     private void handlePairingError(JSONObject payload) {
         String error = payload == null ? "" : payload.optString("error", "");
         final String message = error.isEmpty() ? "Pairing failed or was cancelled" : error;
+        Log.e(TAG, "pairing error: " + message);
         mainHandler.post(() -> listener.onPairingError(message));
     }
 
@@ -378,6 +363,7 @@ public class LgTvClient extends WebSocketClient {
             msg.put("payload", payload == null ? new JSONObject() : payload);
         } catch (JSONException ignored) {
         }
+        Log.d(TAG, "send: " + msg.toString());
         send(msg.toString());
     }
 }
