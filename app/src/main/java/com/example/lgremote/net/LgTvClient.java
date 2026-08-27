@@ -29,6 +29,20 @@ public class LgTvClient extends WebSocketClient {
 
     /** The 4-digit code typed on the TV is shown in this constant. */
     private static final String PAIRING_ID = "register_0";
+    private static final String HELLO_ID = "hello";
+    private static final String SYSINFO_ID = "get_sys_info";
+
+    /**
+     * Handshake mirrors the reference aiowebostv sequence, which works across
+     * webOS 3.x-7.x: send hello, on the hello reply request system info, and
+     * only then register. Newer webOS requires system info to be retrieved
+     * before registration.
+     */
+    private static final int STEP_HELLO = 0;
+    private static final int STEP_SYSINFO = 1;
+    private static final int STEP_REGISTER = 2;
+    private static final int STEP_DONE = 3;
+    private int step = STEP_HELLO;
 
     /**
      * Fresh serial generated once per process. Older webOS reads the manifest's
@@ -128,7 +142,7 @@ public class LgTvClient extends WebSocketClient {
         super(serverUri,
                 new Draft_6455(Collections.<IExtension>emptyList(),
                         Collections.singletonList(new Protocol("lgtv"))),
-                Collections.singletonMap("Origin", "http://localhost"),
+                Collections.emptyMap(),
                 6000);
         this.listener = listener;
         this.clientKey = clientKey == null ? "" : clientKey;
@@ -152,12 +166,12 @@ public class LgTvClient extends WebSocketClient {
 
     @Override
     public void onOpen(ServerHandshake handshakedata) {
-        DebugLog.d(TAG, "socket open, sending register");
+        DebugLog.d(TAG, "socket open, sending hello");
         lastMessageAt = System.currentTimeMillis();
         mainHandler.removeCallbacks(registerWatchdog);
         mainHandler.postDelayed(registerWatchdog, 2000);
         listener.onConnected();
-        sendRegister();
+        sendHello();
     }
 
     @Override
@@ -171,23 +185,45 @@ public class LgTvClient extends WebSocketClient {
             JSONObject payload = json.optJSONObject("payload");
 
             if ("hello".equals(type)) {
-                replyHello();
+                if (step == STEP_HELLO) {
+                    step = STEP_SYSINFO;
+                    sendPreRegSystemInfo();
+                } else {
+                    replyHello();
+                }
             } else if ("registered".equals(type)) {
+                step = STEP_DONE;
                 handshakeDone = true;
                 mainHandler.removeCallbacks(registerWatchdog);
                 handleRegistered(payload);
             } else if ("response".equals(type)) {
-                if (PAIRING_ID.equals(id)) {
+                if (SYSINFO_ID.equals(id)) {
+                    if (step == STEP_SYSINFO) {
+                        step = STEP_REGISTER;
+                        sendRegister();
+                    } else {
+                        handleCommandResponse(id, payload);
+                    }
+                } else if (PAIRING_ID.equals(id)) {
+                    step = STEP_DONE;
                     handshakeDone = true;
                     mainHandler.removeCallbacks(registerWatchdog);
                     handlePairingResponse(payload);
                 } else {
                     handleCommandResponse(id, payload);
                 }
-            } else if ("error".equals(type) && PAIRING_ID.equals(id)) {
-                handshakeDone = true;
-                mainHandler.removeCallbacks(registerWatchdog);
-                handlePairingError(payload);
+            } else if ("error".equals(type)) {
+                if (SYSINFO_ID.equals(id)) {
+                    if (step == STEP_SYSINFO) {
+                        step = STEP_REGISTER;
+                        sendRegister();
+                    }
+                } else if (PAIRING_ID.equals(id)) {
+                    step = STEP_DONE;
+                    handshakeDone = true;
+                    mainHandler.removeCallbacks(registerWatchdog);
+                    handlePairingError(payload);
+                }
             }
         } catch (JSONException e) {
             DebugLog.e(TAG, "Malformed message from TV", e);
@@ -212,16 +248,35 @@ public class LgTvClient extends WebSocketClient {
     // Protocol handshake
     // ------------------------------------------------------------------
 
+    /** First handshake step: announce ourselves. The TV replies with its hello. */
+    private void sendHello() {
+        sendMessage(HELLO_ID, "hello", new JSONObject());
+    }
+
+    /** Pre-registration system info request required by newer webOS. */
+    private void sendPreRegSystemInfo() {
+        JSONObject msg = new JSONObject();
+        try {
+            msg.put("id", SYSINFO_ID);
+            msg.put("type", "request");
+            msg.put("uri", "ssap://system.info/getSystemInfo");
+            msg.put("payload", new JSONObject());
+        } catch (JSONException ignored) {
+        }
+        DebugLog.d(TAG, "send: " + msg.toString());
+        send(msg.toString());
+    }
+
     /**
      * Send the registration request. When the app has no stored client-key the
-     * register uses {@code forcePairing: true} so the TV shows its confirmation
-     * prompt; some firmware silently closes the socket otherwise. Once a key
-     * exists it is included and {@code forcePairing} is {@code false}.
+     * register is sent with {@code forcePairing: false} exactly like the
+     * reference aiowebostv client, which makes the TV show its confirmation
+     * prompt for an unpaired client.
      */
     private void sendRegister() {
         JSONObject payload = new JSONObject();
         try {
-            payload.put("forcePairing", clientKey.isEmpty());
+            payload.put("forcePairing", false);
             payload.put("pairingType", "PROMPT");
             payload.put("manifest", buildManifest());
             if (!clientKey.isEmpty()) {

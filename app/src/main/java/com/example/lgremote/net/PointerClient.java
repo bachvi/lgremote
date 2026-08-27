@@ -35,7 +35,7 @@ public class PointerClient extends WebSocketClient {
         super(serverUri,
                 new Draft_6455(Collections.<IExtension>emptyList(),
                         Collections.singletonList(new Protocol("lgtv"))),
-                Collections.singletonMap("Origin", "http://localhost"),
+                Collections.emptyMap(),
                 5000);
         this.listener = listener;
     }

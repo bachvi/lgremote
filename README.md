@@ -54,20 +54,32 @@ LG webOS exposes a local control API over WebSockets.
 
 ### Control socket
 
-The app connects with subprotocol `lgtv` and an `Origin: http://localhost` header. Newer webOS serves plain WS on port **3000** (and WSS on **3001**), while older firmware uses WSS on **3000**, so the app tries `ws://3000` → `wss://3001` → `wss://3000` in order, advancing only when the socket dies before the handshake opens.
+The app connects with subprotocol `lgtv` and no `Origin` header — webOS rejects connections that send `Origin: http://localhost` with close code `1008` (`invalid origin`). Newer webOS serves plain WS on port **3000** (and WSS on **3001**), while older firmware uses WSS on **3000**, so the app tries `ws://3000` → `wss://3001` → `wss://3000` in order, advancing only when the socket dies before the handshake opens.
 
 The TV uses a self-signed certificate, so a trust-all TLS context is used — **only on `wss://` connections**. Applying the SSL socket factory to a plain `ws://` connection makes the WebSocket library silently attempt a TLS handshake against a plain-WS endpoint, which the TV answers by closing the socket (`SSLHandshakeException: connection closed`).
 
-The register handshake:
+The register handshake mirrors the reference `aiowebostv` client:
 
-1. As soon as the socket opens, register the app:
+1. On socket open, send a hello announcement:
+
+```json
+{ "type": "hello", "id": "hello", "payload": {} }
+```
+
+2. On the TV's hello reply, request system info (newer webOS requires this before registration):
+
+```json
+{ "type": "request", "id": "get_sys_info", "uri": "ssap://system.info/getSystemInfo", "payload": {} }
+```
+
+3. Then register the app:
 
 ```json
 {
   "type": "register",
   "id": "register_0",
   "payload": {
-    "forcePairing": true,
+    "forcePairing": false,
     "pairingType": "PROMPT",
     "manifest": { "manifestVersion": 1, "appVersion": "1.1", "permissions": [ ... ] },
     "client-key": "..."  // only when a key is already stored
@@ -75,15 +87,13 @@ The register handshake:
 }
 ```
 
-`forcePairing` is `true` when the app has no stored `client-key` yet: some firmware silently closes the socket if you register an unpaired client without forcing the prompt. Once a key exists it is included in the register message and `forcePairing` is `false`.
+4. If the TV answers without a `client-key`, it is showing a confirmation prompt / PIN on screen; the app shows a dialog. Enter the code (or simply confirm on the TV if no code is shown) and the app re-registers with `"forcePairing": true` and `"pairingKey": "<code>"`. The TV returns a `client-key`, which the app persists and re-sends on future connections — so no confirmation is ever needed again.
 
-2. If the TV answers without a `client-key`, it is showing a confirmation prompt / PIN on screen; the app shows a dialog. Enter the code (or simply confirm on the TV if no code is shown) and the app re-registers with `"forcePairing": true` and `"pairingKey": "<code>"`. The TV returns a `client-key`, which the app persists and re-sends on future connections — so no confirmation is ever needed again.
+5. The manifest includes a `signed` block with a freshly generated random `serial` (unique per app process). A fixed well-known serial (e.g. `7a2b9c41` from the public SDK samples) causes webOS 6.0+ to treat the client as already paired by another app sharing that serial and close the socket; a unique serial avoids this while still satisfying older firmware that expects the `signed` block.
 
-3. The manifest includes a `signed` block with a freshly generated random `serial` (unique per app process). A fixed well-known serial (e.g. `7a2b9c41` from the public SDK samples) causes webOS 6.0+ to treat the client as already paired by another app sharing that serial and close the socket; a unique serial avoids this while still satisfying older firmware that expects the `signed` block.
+6. If a TV fails to pair (e.g. a stale key from another app), tap the **Forget** button on its row: this clears the stored `client-key` and forces a fresh pairing prompt on the next connect.
 
-4. If a TV fails to pair (e.g. a stale key from another app), tap the **Forget** button on its row: this clears the stored `client-key` and forces a fresh pairing prompt on the next connect.
-
-5. Send commands as requests:
+7. Send commands as requests:
 
 | Action | URI |
 | --- | --- |
