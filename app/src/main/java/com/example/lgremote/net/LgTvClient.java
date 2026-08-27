@@ -2,7 +2,6 @@ package com.example.lgremote.net;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft_6455;
@@ -117,28 +116,28 @@ public class LgTvClient extends WebSocketClient {
 
     public static LgTvClient connectTo(String ip, String scheme, int port, String clientKey, Listener listener) {
         try {
-            Log.d(TAG, "connectTo " + scheme + "://" + ip + ":" + port + "/ key=" + (clientKey != null && !clientKey.isEmpty()));
+            DebugLog.d(TAG, "connectTo " + scheme + "://" + ip + ":" + port + "/ key=" + (clientKey != null && !clientKey.isEmpty()));
             LgTvClient client = new LgTvClient(new URI(scheme + "://" + ip + ":" + port + "/"), clientKey, listener);
             client.setSocketFactory(SslUtils.trustAllSslSocketFactory());
             client.setConnectionLostTimeout(15);
             client.connect();
             return client;
         } catch (Exception e) {
-            Log.e(TAG, "connectTo failed", e);
+            DebugLog.e(TAG, "connectTo failed", e);
             return null;
         }
     }
 
     @Override
     public void onOpen(ServerHandshake handshakedata) {
-        Log.d(TAG, "socket open, sending register");
+        DebugLog.d(TAG, "socket open, sending register");
         listener.onConnected();
         sendRegister();
     }
 
     @Override
     public void onMessage(String message) {
-        Log.d(TAG, "recv: " + message);
+        DebugLog.d(TAG, "recv: " + message);
         try {
             JSONObject json = new JSONObject(message);
             String type = json.optString("type");
@@ -159,19 +158,19 @@ public class LgTvClient extends WebSocketClient {
                 handlePairingError(payload);
             }
         } catch (JSONException e) {
-            Log.w(TAG, "Malformed message from TV", e);
+            DebugLog.e(TAG, "Malformed message from TV", e);
         }
     }
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        Log.d(TAG, "socket closed code=" + code + " reason=" + reason + " remote=" + remote);
+        DebugLog.d(TAG, "socket closed code=" + code + " reason=" + reason + " remote=" + remote);
         mainHandler.post(listener::onDisconnected);
     }
 
     @Override
     public void onError(Exception ex) {
-        Log.e(TAG, "socket error", ex);
+        DebugLog.e(TAG, "socket error", ex);
         mainHandler.post(() -> listener.onError(ex == null ? "Unknown error" : ex.getMessage()));
     }
 
@@ -231,7 +230,7 @@ public class LgTvClient extends WebSocketClient {
         }
         String key = payload.optString("client-key", "");
         if (!key.isEmpty()) {
-            Log.d(TAG, "registered, got client-key");
+            DebugLog.d(TAG, "registered, got client-key");
             mainHandler.post(() -> listener.onPaired(key));
         }
     }
@@ -242,10 +241,10 @@ public class LgTvClient extends WebSocketClient {
         }
         String key = payload.optString("client-key", "");
         if (!key.isEmpty()) {
-            Log.d(TAG, "register response contains client-key");
+            DebugLog.d(TAG, "register response contains client-key");
             mainHandler.post(() -> listener.onPaired(key));
         } else {
-            Log.d(TAG, "register response, pairing required: " + payload.toString());
+            DebugLog.d(TAG, "register response, pairing required: " + payload.toString());
             mainHandler.post(listener::onPairingRequired);
         }
     }
@@ -253,7 +252,7 @@ public class LgTvClient extends WebSocketClient {
     private void handlePairingError(JSONObject payload) {
         String error = payload == null ? "" : payload.optString("error", "");
         final String message = error.isEmpty() ? "Pairing failed or was cancelled" : error;
-        Log.e(TAG, "pairing error: " + message);
+        DebugLog.e(TAG, "pairing error: " + message);
         mainHandler.post(() -> listener.onPairingError(message));
     }
 
@@ -363,7 +362,7 @@ public class LgTvClient extends WebSocketClient {
             msg.put("payload", payload == null ? new JSONObject() : payload);
         } catch (JSONException ignored) {
         }
-        Log.d(TAG, "send: " + msg.toString());
+        DebugLog.d(TAG, "send: " + msg.toString());
         send(msg.toString());
     }
 }

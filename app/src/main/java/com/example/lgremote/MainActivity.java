@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -19,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.lgremote.data.TvDevice;
 import com.example.lgremote.data.TvRepository;
+import com.example.lgremote.net.DebugLog;
 import com.example.lgremote.net.DiscoveryManager;
 import com.example.lgremote.net.LgTvConnection;
 import com.example.lgremote.ui.TvAdapter;
@@ -38,6 +40,7 @@ public class MainActivity extends AppCompatActivity
 
     private TextView statusText;
     private TextView emptyText;
+    private TextView debugText;
     private ListView tvList;
     private com.google.android.material.button.MaterialButton btnScan;
 
@@ -58,6 +61,8 @@ public class MainActivity extends AppCompatActivity
         emptyText = findViewById(R.id.emptyText);
         tvList = findViewById(R.id.tvList);
         btnScan = findViewById(R.id.btnScan);
+        debugText = findViewById(R.id.debugText);
+        findViewById(R.id.debugScroll).setOnClickListener(v -> showDebug());
 
         adapter = new TvAdapter(LayoutInflater.from(this), devices);
         adapter.setConnectListener(this);
@@ -231,6 +236,9 @@ public class MainActivity extends AppCompatActivity
     // ------------------------------------------------------------------
 
     private void connectToTv(TvDevice tv) {
+        DebugLog.clear();
+        DebugLog.d("MainActivity", "connect to " + tv.ip + (tv.clientKey != null && !tv.clientKey.isEmpty() ? " (has key)" : " (no key)"));
+        findViewById(R.id.debugScroll).setVisibility(View.GONE);
         adapter.setConnectingIp(tv.ip);
         adapter.setActiveIp(null);
         showProgress(getString(R.string.connecting_to, tv.getDisplayName()));
@@ -278,6 +286,20 @@ public class MainActivity extends AppCompatActivity
 
     private void onConnected() {
         startActivity(new Intent(this, RemoteActivity.class));
+    }
+
+    private void showDebug() {
+        if (debugText == null) {
+            return;
+        }
+        String dump = DebugLog.dump();
+        if (dump.isEmpty()) {
+            dump = getString(R.string.status_initial);
+        }
+        debugText.setText(dump);
+        findViewById(R.id.debugScroll).setVisibility(View.VISIBLE);
+        ((ScrollView) findViewById(R.id.debugScroll)).post(() ->
+                ((ScrollView) findViewById(R.id.debugScroll)).fullScroll(View.FOCUS_DOWN));
     }
 
     // ------------------------------------------------------------------
@@ -345,6 +367,7 @@ public class MainActivity extends AppCompatActivity
                 dismissProgress();
                 adapter.setActiveIp(null);
                 adapter.setConnectingIp(null);
+                showDebug();
                 break;
             case LgTvConnection.STATE_CONNECTING:
             default:
@@ -362,6 +385,7 @@ public class MainActivity extends AppCompatActivity
         Toast.makeText(this, getString(R.string.remote_error, message), Toast.LENGTH_LONG).show();
         adapter.setActiveIp(null);
         adapter.setConnectingIp(null);
+        showDebug();
     }
 
     // ------------------------------------------------------------------
