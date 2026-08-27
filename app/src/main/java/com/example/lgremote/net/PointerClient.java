@@ -44,7 +44,9 @@ public class PointerClient extends WebSocketClient {
         try {
             String scheme = ssl ? "wss" : "ws";
             PointerClient client = new PointerClient(new URI(scheme + "://" + ip + ":" + port + "/"), listener);
-            client.setSocketFactory(SslUtils.trustAllSslSocketFactory());
+            if (ssl) {
+                client.setSocketFactory(SslUtils.trustAllSslSocketFactory());
+            }
             client.setConnectionLostTimeout(15);
             client.connect();
             return client;

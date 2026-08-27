@@ -104,6 +104,26 @@ public class LgTvClient extends WebSocketClient {
     private final Map<String, Callback> pendingRequests = new HashMap<>();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
+    private static final long REGISTER_TIMEOUT_MS = 12000;
+    private long lastMessageAt = 0;
+    private volatile boolean handshakeDone = false;
+
+    private final Runnable registerWatchdog = new Runnable() {
+        @Override
+        public void run() {
+            if (handshakeDone || !isOpen()) {
+                return;
+            }
+            long idle = System.currentTimeMillis() - lastMessageAt;
+            if (idle > REGISTER_TIMEOUT_MS) {
+                DebugLog.e(TAG, "no response from TV within " + REGISTER_TIMEOUT_MS + "ms, closing socket");
+                close();
+                return;
+            }
+            mainHandler.postDelayed(this, 2000);
+        }
+    };
+
     public LgTvClient(URI serverUri, String clientKey, Listener listener) {
         super(serverUri,
                 new Draft_6455(Collections.<IExtension>emptyList(),
@@ -118,7 +138,9 @@ public class LgTvClient extends WebSocketClient {
         try {
             DebugLog.d(TAG, "connectTo " + scheme + "://" + ip + ":" + port + "/ key=" + (clientKey != null && !clientKey.isEmpty()));
             LgTvClient client = new LgTvClient(new URI(scheme + "://" + ip + ":" + port + "/"), clientKey, listener);
-            client.setSocketFactory(SslUtils.trustAllSslSocketFactory());
+            if ("wss".equalsIgnoreCase(scheme)) {
+                client.setSocketFactory(SslUtils.trustAllSslSocketFactory());
+            }
             client.setConnectionLostTimeout(15);
             client.connect();
             return client;
@@ -131,6 +153,9 @@ public class LgTvClient extends WebSocketClient {
     @Override
     public void onOpen(ServerHandshake handshakedata) {
         DebugLog.d(TAG, "socket open, sending register");
+        lastMessageAt = System.currentTimeMillis();
+        mainHandler.removeCallbacks(registerWatchdog);
+        mainHandler.postDelayed(registerWatchdog, 2000);
         listener.onConnected();
         sendRegister();
     }
@@ -138,6 +163,7 @@ public class LgTvClient extends WebSocketClient {
     @Override
     public void onMessage(String message) {
         DebugLog.d(TAG, "recv: " + message);
+        lastMessageAt = System.currentTimeMillis();
         try {
             JSONObject json = new JSONObject(message);
             String type = json.optString("type");
@@ -147,14 +173,20 @@ public class LgTvClient extends WebSocketClient {
             if ("hello".equals(type)) {
                 replyHello();
             } else if ("registered".equals(type)) {
+                handshakeDone = true;
+                mainHandler.removeCallbacks(registerWatchdog);
                 handleRegistered(payload);
             } else if ("response".equals(type)) {
                 if (PAIRING_ID.equals(id)) {
+                    handshakeDone = true;
+                    mainHandler.removeCallbacks(registerWatchdog);
                     handlePairingResponse(payload);
                 } else {
                     handleCommandResponse(id, payload);
                 }
             } else if ("error".equals(type) && PAIRING_ID.equals(id)) {
+                handshakeDone = true;
+                mainHandler.removeCallbacks(registerWatchdog);
                 handlePairingError(payload);
             }
         } catch (JSONException e) {
@@ -164,12 +196,14 @@ public class LgTvClient extends WebSocketClient {
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
+        mainHandler.removeCallbacks(registerWatchdog);
         DebugLog.d(TAG, "socket closed code=" + code + " reason=" + reason + " remote=" + remote);
         mainHandler.post(listener::onDisconnected);
     }
 
     @Override
     public void onError(Exception ex) {
+        mainHandler.removeCallbacks(registerWatchdog);
         DebugLog.e(TAG, "socket error", ex);
         mainHandler.post(() -> listener.onError(ex == null ? "Unknown error" : ex.getMessage()));
     }

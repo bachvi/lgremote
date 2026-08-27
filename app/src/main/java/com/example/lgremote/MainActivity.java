@@ -1,6 +1,8 @@
 package com.example.lgremote;
 
 import android.app.ProgressDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
@@ -62,7 +64,8 @@ public class MainActivity extends AppCompatActivity
         tvList = findViewById(R.id.tvList);
         btnScan = findViewById(R.id.btnScan);
         debugText = findViewById(R.id.debugText);
-        findViewById(R.id.debugScroll).setOnClickListener(v -> showDebug());
+        findViewById(R.id.debugPanel).setOnClickListener(v -> showDebug());
+        findViewById(R.id.btnCopyDebug).setOnClickListener(v -> copyDebug());
 
         adapter = new TvAdapter(LayoutInflater.from(this), devices);
         adapter.setConnectListener(this);
@@ -238,7 +241,7 @@ public class MainActivity extends AppCompatActivity
     private void connectToTv(TvDevice tv) {
         DebugLog.clear();
         DebugLog.d("MainActivity", "connect to " + tv.ip + (tv.clientKey != null && !tv.clientKey.isEmpty() ? " (has key)" : " (no key)"));
-        findViewById(R.id.debugScroll).setVisibility(View.GONE);
+        findViewById(R.id.debugPanel).setVisibility(View.GONE);
         adapter.setConnectingIp(tv.ip);
         adapter.setActiveIp(null);
         showProgress(getString(R.string.connecting_to, tv.getDisplayName()));
@@ -297,9 +300,21 @@ public class MainActivity extends AppCompatActivity
             dump = getString(R.string.status_initial);
         }
         debugText.setText(dump);
-        findViewById(R.id.debugScroll).setVisibility(View.VISIBLE);
+        findViewById(R.id.debugPanel).setVisibility(View.VISIBLE);
         ((ScrollView) findViewById(R.id.debugScroll)).post(() ->
                 ((ScrollView) findViewById(R.id.debugScroll)).fullScroll(View.FOCUS_DOWN));
+    }
+
+    private void copyDebug() {
+        String dump = DebugLog.dump();
+        if (dump.isEmpty()) {
+            return;
+        }
+        ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        if (cm != null) {
+            cm.setPrimaryClip(ClipData.newPlainText("LG remote debug log", dump));
+            Toast.makeText(this, R.string.debug_copied, Toast.LENGTH_SHORT).show();
+        }
     }
 
     // ------------------------------------------------------------------

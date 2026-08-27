@@ -54,7 +54,9 @@ LG webOS exposes a local control API over WebSockets.
 
 ### Control socket
 
-The app connects with subprotocol `lgtv` and an `Origin: http://localhost` header. The TV uses a self-signed certificate, so a trust-all TLS context is used. Newer webOS serves plain WS on port **3000** (and WSS on **3001**), while older firmware uses WSS on **3000**, so the app tries `ws://3000` → `wss://3001` → `wss://3000` in order, advancing only when the socket dies before the handshake opens.
+The app connects with subprotocol `lgtv` and an `Origin: http://localhost` header. Newer webOS serves plain WS on port **3000** (and WSS on **3001**), while older firmware uses WSS on **3000**, so the app tries `ws://3000` → `wss://3001` → `wss://3000` in order, advancing only when the socket dies before the handshake opens.
+
+The TV uses a self-signed certificate, so a trust-all TLS context is used — **only on `wss://` connections**. Applying the SSL socket factory to a plain `ws://` connection makes the WebSocket library silently attempt a TLS handshake against a plain-WS endpoint, which the TV answers by closing the socket (`SSLHandshakeException: connection closed`).
 
 The register handshake:
 
@@ -126,4 +128,5 @@ app/src/main/java/com/example/lgremote/
 
 - **"Connection error" on connect** — double-check the IP, make sure the phone and TV are on the same network, and that nothing else (e.g., the LG ThinQ app) holds the pairing slot; reboot the TV's network or "De-register devices" in TV settings if pairing keeps failing.
 - **Pairing code never appears** — enable "mobile device connection" / "external device" in the TV's connection settings.
+- **The diagnostics panel** — when a connect attempt ends, a diagnostics panel appears at the bottom of the TV list. It records every address tried, every handshake message sent/received, and the socket close code. Tap **Copy** and paste the log when reporting an issue — it pinpoints whether the failure is at the TCP, TLS, or register step.
 - **Touchpad doesn't move the cursor** — the pointer socket failed to open (some TVs disable the pointer input). Volume, channel, and D-pad buttons still work; re-connecting usually re-establishes it.

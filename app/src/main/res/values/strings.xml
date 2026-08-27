@@ -3,6 +3,9 @@
     <string name="title_remote">Remote Control</string>
 
     <string name="status_initial">Scan your network or add a TV manually</string>
+    <string name="debug_title">Diagnostics (tap to refresh)</string>
+    <string name="debug_copy">Copy</string>
+    <string name="debug_copied">Debug log copied</string>
     <string name="status_scanning">Scanning for TVs…</string>
     <string name="status_scan_found">%1$d TV(s) found</string>
     <string name="status_none_found">No TVs found. Check that the TV is on and connected to the same Wi‑Fi, or add it manually.</string>
