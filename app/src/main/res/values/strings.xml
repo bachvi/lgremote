@@ -29,10 +29,10 @@
     <string name="status_not_paired">Not paired</string>
     <string name="status_offline">Offline</string>
 
-    <string name="pairing_title">Confirm the connection on your TV</string>
-    <string name="pairing_message">Your TV should now show a confirmation prompt. If it shows a 4‑digit code, enter it below. Otherwise, confirm the connection directly on the TV screen.</string>
-    <string name="pairing_hint">Code shown on TV (optional)</string>
-    <string name="pairing_confirm">Allow</string>
+    <string name="pairing_title">Enter the code shown on your TV</string>
+    <string name="pairing_message">Your TV is showing a 4‑digit code. Enter it below to pair this device.</string>
+    <string name="pairing_hint">4‑digit code shown on TV</string>
+    <string name="pairing_confirm">Pair</string>
 
     <string name="remote_disconnected">Connection to the TV was lost</string>
     <string name="remote_error">Connection error: %1$s</string>

@@ -269,15 +269,15 @@ public class LgTvClient extends WebSocketClient {
 
     /**
      * Send the registration request. When the app has no stored client-key the
-     * register is sent with {@code forcePairing: false} exactly like the
-     * reference aiowebostv client, which makes the TV show its confirmation
-     * prompt for an unpaired client.
+     * register is sent with {@code pairingType: "PINS"} so the TV displays a
+     * 4-digit code on screen (instead of a simple accept prompt) which the user
+     * then enters in the app.
      */
     private void sendRegister() {
         JSONObject payload = new JSONObject();
         try {
             payload.put("forcePairing", false);
-            payload.put("pairingType", "PROMPT");
+            payload.put("pairingType", "PINS");
             payload.put("manifest", buildManifest());
             if (!clientKey.isEmpty()) {
                 payload.put("client-key", clientKey);
@@ -302,7 +302,7 @@ public class LgTvClient extends WebSocketClient {
         JSONObject payload = new JSONObject();
         try {
             payload.put("forcePairing", true);
-            payload.put("pairingType", "PROMPT");
+            payload.put("pairingType", "PINS");
             payload.put("pairingKey", pin);
             payload.put("manifest", buildManifest());
             if (!clientKey.isEmpty()) {

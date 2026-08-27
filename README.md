@@ -80,14 +80,16 @@ The register handshake mirrors the reference `aiowebostv` client:
   "id": "register_0",
   "payload": {
     "forcePairing": false,
-    "pairingType": "PROMPT",
+    "pairingType": "PINS",
     "manifest": { "manifestVersion": 1, "appVersion": "1.1", "permissions": [ ... ] },
     "client-key": "..."  // only when a key is already stored
   }
 }
 ```
 
-4. If the TV answers without a `client-key`, it is showing a confirmation prompt / PIN on screen; the app shows a dialog. Enter the code (or simply confirm on the TV if no code is shown) and the app re-registers with `"forcePairing": true` and `"pairingKey": "<code>"`. The TV returns a `client-key`, which the app persists and re-sends on future connections — so no confirmation is ever needed again.
+`pairingType: "PINS"` makes the TV display a 4-digit PIN on screen instead of a plain accept prompt. If a TV only ever shows a confirmation prompt regardless, it can be switched back to `"PROMPT"` in `sendRegister()`.
+
+4. When the TV answers without a `client-key`, it is displaying a 4-digit PIN; the app shows a dialog. Enter the code and the app re-registers with `"forcePairing": true` and `"pairingKey": "<code>"`. The TV returns a `client-key`, which the app persists and re-sends on future connections — so no confirmation is ever needed again.
 
 5. The manifest includes a `signed` block with a freshly generated random `serial` (unique per app process). A fixed well-known serial (e.g. `7a2b9c41` from the public SDK samples) causes webOS 6.0+ to treat the client as already paired by another app sharing that serial and close the socket; a unique serial avoids this while still satisfying older firmware that expects the `signed` block.
 
