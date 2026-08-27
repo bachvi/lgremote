@@ -249,6 +249,24 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void showPairingDialog() {
+        if (connection.isPairingPinRequired()) {
+            showPinDialog();
+        } else {
+            showConfirmOnTvDialog();
+        }
+    }
+
+    private void showConfirmOnTvDialog() {
+        pairingDialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.pairing_title_confirm)
+                .setMessage(R.string.pairing_message_confirm)
+                .setNegativeButton(R.string.cancel, (d, w) -> connection.disconnect())
+                .setCancelable(false)
+                .create();
+        pairingDialog.show();
+    }
+
+    private void showPinDialog() {
         View view = getLayoutInflater().inflate(R.layout.dialog_pairing, null);
         EditText pinInput = view.findViewById(R.id.inputPin);
 

@@ -92,8 +92,13 @@ public class LgTvClient extends WebSocketClient {
     public interface Listener {
         void onConnected();
 
-        /** The TV is showing a confirmation code and is waiting for the app to submit it. */
-        void onPairingRequired();
+        /**
+         * The TV is asking the user to confirm the connection on the TV screen.
+         * When {@code pinRequired} is true the TV displays a 4-digit code that
+         * must be entered in the app; otherwise the user just accepts on the TV
+         * and the TV completes the pairing itself.
+         */
+        void onPairingRequired(boolean pinRequired);
 
         /** Pairing succeeded; the returned key must be persisted for future connections. */
         void onPaired(String clientKey);
@@ -333,8 +338,10 @@ public class LgTvClient extends WebSocketClient {
             DebugLog.d(TAG, "register response contains client-key");
             mainHandler.post(() -> listener.onPaired(key));
         } else {
-            DebugLog.d(TAG, "register response, pairing required: " + payload.toString());
-            mainHandler.post(listener::onPairingRequired);
+            String pairingType = payload.optString("pairingType", "PROMPT");
+            final boolean pinRequired = "PINS".equals(pairingType);
+            DebugLog.d(TAG, "register response, pairing required (" + pairingType + "): " + payload.toString());
+            mainHandler.post(() -> listener.onPairingRequired(pinRequired));
         }
     }
 

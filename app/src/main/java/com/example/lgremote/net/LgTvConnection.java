@@ -47,6 +47,7 @@ public class LgTvConnection {
     private int state = STATE_DISCONNECTED;
     private int pointerAttempts = 0;
     private int connectAttempts = 0;
+    private boolean pairingPinRequired = false;
 
     public static synchronized LgTvConnection get(Context context) {
         if (sInstance == null) {
@@ -75,6 +76,14 @@ public class LgTvConnection {
         return state == STATE_CONNECTED;
     }
 
+    /**
+     * Whether the pairing prompt the TV is showing requires a 4-digit code to be
+     * entered in the app, or is a plain accept-on-TV confirmation.
+     */
+    public boolean isPairingPinRequired() {
+        return pairingPinRequired;
+    }
+
     // ------------------------------------------------------------------
     // Connection lifecycle
     // ------------------------------------------------------------------
@@ -84,6 +93,7 @@ public class LgTvConnection {
         closeClients();
         pointerAttempts = 0;
         connectAttempts = 0;
+        pairingPinRequired = false;
         setState(STATE_CONNECTING);
         connectAttempt(0);
     }
@@ -126,8 +136,9 @@ public class LgTvConnection {
                     }
 
                     @Override
-                    public void onPairingRequired() {
-                        DebugLog.d(TAG, "pairing required");
+                    public void onPairingRequired(boolean pinRequired) {
+                        DebugLog.d(TAG, "pairing required (pin=" + pinRequired + ")");
+                        pairingPinRequired = pinRequired;
                         setState(STATE_PAIRING);
                     }
 
@@ -208,6 +219,7 @@ public class LgTvConnection {
 
     public synchronized void disconnect() {
         closeClients();
+        pairingPinRequired = false;
         setState(STATE_DISCONNECTED);
     }
 
