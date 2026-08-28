@@ -274,16 +274,19 @@ public class LgTvClient extends WebSocketClient {
 
     /**
      * Send the registration request. When the app has no stored client-key the
-     * register is sent with {@code pairingType: "PINS"} so the TV displays a
+     * register is sent with {@code pairingType: "PIN"} so the TV displays a
      * 4-digit code on screen (instead of a plain accept prompt) which the user
      * then enters in the app, and {@code forcePairing: true} so the TV starts a
-     * fresh pairing prompt for the new app identity.
+     * fresh pairing prompt for the new app identity. The value "PIN" (not the
+     * "PINS" used by newer firmware) matches what this TV advertises in its
+     * hello {@code pairingTypes} list; sending "PINS" made it fall back to
+     * "PROMPT".
      */
     private void sendRegister() {
         JSONObject payload = new JSONObject();
         try {
             payload.put("forcePairing", clientKey.isEmpty());
-            payload.put("pairingType", "PINS");
+            payload.put("pairingType", "PIN");
             payload.put("manifest", buildManifest());
             if (!clientKey.isEmpty()) {
                 payload.put("client-key", clientKey);
@@ -308,7 +311,7 @@ public class LgTvClient extends WebSocketClient {
         JSONObject payload = new JSONObject();
         try {
             payload.put("forcePairing", true);
-            payload.put("pairingType", "PINS");
+            payload.put("pairingType", "PIN");
             payload.put("pairingKey", pin);
             payload.put("manifest", buildManifest());
             if (!clientKey.isEmpty()) {
@@ -340,7 +343,9 @@ public class LgTvClient extends WebSocketClient {
             mainHandler.post(() -> listener.onPaired(key));
         } else {
             String pairingType = payload.optString("pairingType", "PROMPT");
-            final boolean pinRequired = "PINS".equals(pairingType);
+            final boolean pinRequired = "PIN".equals(pairingType)
+                    || "PINS".equals(pairingType)
+                    || "COMBINED".equals(pairingType);
             DebugLog.d(TAG, "register response, pairing required (" + pairingType + "): " + payload.toString());
             mainHandler.post(() -> listener.onPairingRequired(pinRequired));
         }
