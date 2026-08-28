@@ -275,13 +275,14 @@ public class LgTvClient extends WebSocketClient {
     /**
      * Send the registration request. When the app has no stored client-key the
      * register is sent with {@code pairingType: "PINS"} so the TV displays a
-     * 4-digit code on screen (instead of a simple accept prompt) which the user
-     * then enters in the app.
+     * 4-digit code on screen (instead of a plain accept prompt) which the user
+     * then enters in the app, and {@code forcePairing: true} so the TV starts a
+     * fresh pairing prompt for the new app identity.
      */
     private void sendRegister() {
         JSONObject payload = new JSONObject();
         try {
-            payload.put("forcePairing", false);
+            payload.put("forcePairing", clientKey.isEmpty());
             payload.put("pairingType", "PINS");
             payload.put("manifest", buildManifest());
             if (!clientKey.isEmpty()) {
