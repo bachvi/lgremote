@@ -30,8 +30,8 @@
     <string name="status_offline">Offline</string>
 
     <string name="pairing_title">Enter the code shown on your TV</string>
-    <string name="pairing_message">Your TV is showing a 4‑digit code. Enter it below to pair this device.</string>
-    <string name="pairing_hint">4‑digit code shown on TV</string>
+    <string name="pairing_message">Your TV is showing a code. Enter it below to pair this device.</string>
+    <string name="pairing_hint">Code shown on TV</string>
     <string name="pairing_confirm">Pair</string>
     <string name="pairing_title_confirm">Confirm the connection on your TV</string>
     <string name="pairing_message_confirm">Your TV is showing a confirmation prompt. Accept it on the TV to connect.</string>
