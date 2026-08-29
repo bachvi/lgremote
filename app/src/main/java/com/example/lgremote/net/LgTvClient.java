@@ -126,6 +126,7 @@ public class LgTvClient extends WebSocketClient {
     private static final long REGISTER_TIMEOUT_MS = 12000;
     private long lastMessageAt = 0;
     private volatile boolean handshakeDone = false;
+    private volatile boolean registeredReceived = false;
 
     private final Runnable registerWatchdog = new Runnable() {
         @Override
@@ -199,6 +200,7 @@ public class LgTvClient extends WebSocketClient {
             } else if ("registered".equals(type)) {
                 step = STEP_DONE;
                 handshakeDone = true;
+                registeredReceived = true;
                 mainHandler.removeCallbacks(registerWatchdog);
                 handleRegistered(payload);
             } else if ("response".equals(type)) {
@@ -228,6 +230,8 @@ public class LgTvClient extends WebSocketClient {
                     handshakeDone = true;
                     mainHandler.removeCallbacks(registerWatchdog);
                     handlePairingError(payload);
+                } else {
+                    handleCommandResponse(id, payload);
                 }
             }
         } catch (JSONException e) {
@@ -306,20 +310,41 @@ public class LgTvClient extends WebSocketClient {
         sendMessage(null, "hello", payload);
     }
 
-    /** Submit the confirmation code shown on the TV screen. */
+    /**
+     * Submit the confirmation code shown on the TV screen. The PIN is not sent
+     * via a second register (the TV rejects that with "409 register already in
+     * progress"); instead it goes through the {@code ssap://pairing/setPin}
+     * service, after which the TV pushes a {@code registered} message carrying
+     * the client-key (mirrors ConnectSDK's WebOSTVServiceSocketClient).
+     */
     public void pairWithPin(String pin) {
         JSONObject payload = new JSONObject();
         try {
-            payload.put("forcePairing", true);
-            payload.put("pairingType", "PIN");
-            payload.put("pairingKey", pin);
-            payload.put("manifest", buildManifest());
-            if (!clientKey.isEmpty()) {
-                payload.put("client-key", clientKey);
-            }
+            payload.put("pin", pin);
         } catch (JSONException ignored) {
         }
-        sendMessage(PAIRING_ID, "register", payload);
+        DebugLog.d(TAG, "submitting PIN to ssap://pairing/setPin");
+        sendCommand("ssap://pairing/setPin", payload, result -> {
+            if (result == null) {
+                return;
+            }
+            String key = result.optString("client-key", "");
+            if (!key.isEmpty()) {
+                DebugLog.d(TAG, "setPin response contains client-key");
+                mainHandler.post(() -> listener.onPaired(key));
+                return;
+            }
+            DebugLog.d(TAG, "setPin response: " + result.toString());
+            if (!result.optBoolean("returnValue", false)) {
+                mainHandler.post(() -> listener.onPairingError("TV rejected the PIN code"));
+            }
+        });
+        mainHandler.postDelayed(() -> {
+            if (!registeredReceived) {
+                DebugLog.e(TAG, "no registered confirmation within 10s of PIN submit");
+                mainHandler.post(() -> listener.onPairingError("TV did not confirm the PIN code"));
+            }
+        }, 10000);
     }
 
     private void handleRegistered(JSONObject payload) {
