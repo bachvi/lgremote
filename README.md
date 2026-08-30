@@ -102,13 +102,15 @@ The register handshake mirrors the reference `aiowebostv` client:
 
 | Action | URI |
 | --- | --- |
-| Volume up / down | `ssap://media.controls/volumeUp` / `volumeDown` |
-| Mute | `ssap://media.controls/setMute` (`{"mute":true}`) |
-| Get volume | `ssap://media.controls/getVolume` |
-| Channel up / down | `ssap://media.controls/channelUp` / `channelDown` |
+| Volume up / down | `ssap://audio/volumeUp` / `volumeDown` |
+| Mute / unmute | `ssap://audio/setMute` (`{"mute":true\|false}`) |
+| Get volume | `ssap://audio/getVolume` |
+| Channel up / down | `ssap://tv/channelUp` / `channelDown` |
 | Home | `ssap://system.launcher/launch` (`{"id":"com.webos.app.home"}`) |
 | Back (fallback) | `ssap://system.launcher/close` |
 | Turn off | `ssap://system/turnOff` |
+
+> On webOS 4.x the volume/mute/channel services live under `ssap://audio/*` and `ssap://tv/*`; the `ssap://media.controls/*` names used by newer firmware return `404 no such service or method` there.
 
 ### Pointer socket (`ws://<tv-ip>:3001`)
 

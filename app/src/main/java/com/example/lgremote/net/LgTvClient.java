@@ -127,6 +127,7 @@ public class LgTvClient extends WebSocketClient {
     private long lastMessageAt = 0;
     private volatile boolean handshakeDone = false;
     private volatile boolean registeredReceived = false;
+    private volatile boolean muted = false;
 
     private final Runnable registerWatchdog = new Runnable() {
         @Override
@@ -399,10 +400,11 @@ public class LgTvClient extends WebSocketClient {
                 final int volume = volStatus != null
                         ? volStatus.optInt("volume", -1)
                         : payload.optInt("volume", -1);
-                final boolean muted = volStatus != null
+                final boolean isMuted = volStatus != null
                         ? volStatus.optBoolean("muted", false)
                         : payload.optBoolean("muted", false);
-                mainHandler.post(() -> listener.onVolume(volume, muted));
+                muted = isMuted;
+                mainHandler.post(() -> listener.onVolume(volume, isMuted));
             }
         }
     }
@@ -432,15 +434,15 @@ public class LgTvClient extends WebSocketClient {
     }
 
     public void volumeUp() {
-        sendCommand("ssap://media.controls/volumeUp", null, null);
+        sendCommand("ssap://audio/volumeUp", null, null);
     }
 
     public void volumeDown() {
-        sendCommand("ssap://media.controls/volumeDown", null, null);
+        sendCommand("ssap://audio/volumeDown", null, null);
     }
 
     public void toggleMute() {
-        sendCommand("ssap://media.controls/toggleMute", null, null);
+        setMute(!muted);
     }
 
     public void setMute(boolean mute) {
@@ -449,19 +451,19 @@ public class LgTvClient extends WebSocketClient {
             p.put("mute", mute);
         } catch (JSONException ignored) {
         }
-        sendCommand("ssap://media.controls/setMute", p, null);
+        sendCommand("ssap://audio/setMute", p, null);
     }
 
     public void getVolume() {
-        sendCommand("ssap://media.controls/getVolume", null, null);
+        sendCommand("ssap://audio/getVolume", null, null);
     }
 
     public void channelUp() {
-        sendCommand("ssap://media.controls/channelUp", null, null);
+        sendCommand("ssap://tv/channelUp", null, null);
     }
 
     public void channelDown() {
-        sendCommand("ssap://media.controls/channelDown", null, null);
+        sendCommand("ssap://tv/channelDown", null, null);
     }
 
     public void openHome() {
