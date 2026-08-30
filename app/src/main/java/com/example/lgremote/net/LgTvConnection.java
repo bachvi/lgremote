@@ -278,7 +278,8 @@ public class LgTvConnection {
                 }
             } catch (Exception ignored) {
             }
-            DebugLog.e(TAG, "no pointer socket port in response");
+            DebugLog.d(TAG, "no pointer socket port in response, falling back to 3000");
+            connectPointer(3000);
         });
     }
 
