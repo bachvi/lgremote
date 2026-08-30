@@ -1,5 +1,8 @@
 package com.example.lgremote;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -86,6 +89,7 @@ public class RemoteActivity extends AppCompatActivity implements LgTvConnection.
             connection.disconnect();
             finish();
         });
+        findViewById(R.id.btnDebug).setOnClickListener(v -> showDebugDialog());
 
         findViewById(R.id.btnVolumeDown).setOnClickListener(v -> {
             connection.volumeDown();
@@ -138,6 +142,30 @@ public class RemoteActivity extends AppCompatActivity implements LgTvConnection.
                 connection.pointerClick();
             }
         });
+    }
+
+    private void showDebugDialog() {
+        String raw = com.example.lgremote.net.DebugLog.dump();
+        final String dump = raw.isEmpty() ? getString(R.string.status_initial) : raw;
+        TextView text = new TextView(this);
+        text.setTextIsSelectable(true);
+        text.setText(dump);
+        text.setTextSize(10f);
+        text.setTypeface(Typeface.MONOSPACE);
+        int pad = (int) (12 * getResources().getDisplayMetrics().density);
+        text.setPadding(pad, pad, pad, pad);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.debug_title)
+                .setView(text)
+                .setPositiveButton(R.string.debug_copy, (d, w) -> {
+                    ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                    if (cm != null) {
+                        cm.setPrimaryClip(ClipData.newPlainText("LG remote debug log", dump));
+                        Toast.makeText(this, R.string.debug_copied, Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
     }
 
     private void refreshVolumeSoon() {
