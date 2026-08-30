@@ -112,12 +112,12 @@ The register handshake mirrors the reference `aiowebostv` client:
 
 ### Pointer socket (`ws://<tv-ip>:3001`)
 
-The TV reports the pointer port in the response to `ssap://com.webos.service.networkinput/getPointerInputSocket`. The app connects there (falling back to `wss://` if `ws://` fails) and sends:
+The TV reports the pointer port in the response to `ssap://com.webos.service.networkinput/getPointerInputSocket`. The app connects there (falling back to `wss://` if `ws://` fails). Unlike the main socket, the pointer socket does **not** use JSON — it speaks a plain-text line protocol, one command per message (each field on its own line, terminated by a blank line):
 
-- move: `{"type":"touch","payload":{"type":"move","dx":..,"dy":..}}`
-- click: `{"type":"touch","payload":{"type":"click"}}`
-- scroll: `{"type":"touch","payload":{"type":"wheel","dx":0,"dy":..}}`
-- buttons: `{"type":"button","payload":{"name":"UP"|"DOWN"|"LEFT"|"RIGHT"|"OK"|"BACK"}}`
+- move: `type:move` / `dx:..` / `dy:..` / `down:0`
+- click: `type:click`
+- scroll: `type:scroll` / `dx:0` / `dy:..`
+- buttons: `type:button` / `name:UP|DOWN|LEFT|RIGHT|OK|BACK|HOME`
 
 ## Project layout
 
@@ -144,4 +144,4 @@ app/src/main/java/com/example/lgremote/
 - **"Connection error" on connect** — double-check the IP, make sure the phone and TV are on the same network, and that nothing else (e.g., the LG ThinQ app) holds the pairing slot; reboot the TV's network or "De-register devices" in TV settings if pairing keeps failing.
 - **Pairing code never appears** — enable "mobile device connection" / "external device" in the TV's connection settings.
 - **The diagnostics panel** — when a connect attempt ends, a diagnostics panel appears at the bottom of the TV list. It records every address tried, every handshake message sent/received, and the socket close code. Tap **Copy** and paste the log when reporting an issue — it pinpoints whether the failure is at the TCP, TLS, or register step.
-- **Touchpad doesn't move the cursor** — the pointer socket failed to open (some TVs disable the pointer input). Volume, channel, and D-pad buttons still work; re-connecting usually re-establishes it.
+- **Touchpad doesn't move the cursor** — the pointer socket failed to open (some TVs disable the pointer input) or the command format is wrong. Volume, channel, and D-pad buttons still work; re-connecting usually re-establishes it.

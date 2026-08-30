@@ -8,8 +8,6 @@ import org.java_websocket.drafts.Draft_6455;
 import org.java_websocket.extensions.IExtension;
 import org.java_websocket.handshake.ServerHandshake;
 import org.java_websocket.protocols.Protocol;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.net.URI;
 import java.util.Collections;
@@ -17,8 +15,32 @@ import java.util.Collections;
 /**
  * WebSocket client for the TV's pointer/network-input socket, used for the
  * touchpad (move / click / scroll) and hardware-style buttons (OK, BACK, ...).
+ *
+ * The network-input socket does NOT use the JSON "ssap" framing of the main
+ * socket; it speaks a plain-text line protocol, one command per message:
+ * <pre>
+ *   type:button
+ *   name:UP
+ *   </pre>
+ * <pre>
+ *   type:move
+ *   dx:10
+ *   dy:0
+ *   down:0
+ *   </pre>
+ * <pre>
+ *   type:click
+ *   </pre>
+ * <pre>
+ *   type:scroll
+ *   dx:0
+ *   dy:3
+ *   </pre>
+ * Each command is terminated by a blank line.
  */
 public class PointerClient extends WebSocketClient {
+
+    private static final String TAG = "PointerClient";
 
     public interface Listener {
         void onOpen();
@@ -51,12 +73,14 @@ public class PointerClient extends WebSocketClient {
             client.connect();
             return client;
         } catch (Exception e) {
+            DebugLog.e(TAG, "connectTo failed", e);
             return null;
         }
     }
 
     @Override
     public void onOpen(ServerHandshake handshakedata) {
+        DebugLog.d(TAG, "pointer socket open");
         mainHandler.post(listener::onOpen);
     }
 
@@ -67,58 +91,40 @@ public class PointerClient extends WebSocketClient {
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
+        DebugLog.d(TAG, "pointer socket closed code=" + code + " reason=" + reason);
         mainHandler.post(() -> listener.onClose(reason));
     }
 
     @Override
     public void onError(Exception ex) {
+        DebugLog.e(TAG, "pointer socket error", ex);
         mainHandler.post(() -> listener.onError(ex == null ? "Pointer error" : ex.getMessage()));
     }
 
     public void move(int dx, int dy) {
-        sendTouch("move", dx, dy);
+        sendLine("type:move", "dx:" + dx, "dy:" + dy, "down:0");
     }
 
     public void wheel(int dx, int dy) {
-        sendTouch("wheel", dx, dy);
+        sendLine("type:scroll", "dx:" + dx, "dy:" + dy);
     }
 
     public void click() {
-        JSONObject payload = new JSONObject();
-        try {
-            payload.put("type", "click");
-        } catch (JSONException ignored) {
-        }
-        sendMessage("touch", payload);
+        sendLine("type:click");
     }
 
     public void button(String name) {
-        JSONObject payload = new JSONObject();
-        try {
-            payload.put("name", name);
-        } catch (JSONException ignored) {
-        }
-        sendMessage("button", payload);
+        sendLine("type:button", "name:" + name);
     }
 
-    private void sendTouch(String type, int dx, int dy) {
-        JSONObject payload = new JSONObject();
-        try {
-            payload.put("type", type);
-            payload.put("dx", dx);
-            payload.put("dy", dy);
-        } catch (JSONException ignored) {
+    private void sendLine(String... lines) {
+        StringBuilder sb = new StringBuilder();
+        for (String line : lines) {
+            sb.append(line).append('\n');
         }
-        sendMessage("touch", payload);
-    }
-
-    private void sendMessage(String type, JSONObject payload) {
-        JSONObject msg = new JSONObject();
-        try {
-            msg.put("type", type);
-            msg.put("payload", payload);
-        } catch (JSONException ignored) {
-        }
-        send(msg.toString());
+        sb.append('\n');
+        String message = sb.toString();
+        DebugLog.d(TAG, "send: " + message.replace("\n", " | "));
+        send(message);
     }
 }

@@ -259,10 +259,26 @@ public class LgTvConnection {
             return;
         }
         tvClient.sendCommand("ssap://com.webos.service.networkinput/getPointerInputSocket", null, payload -> {
-            int port = payload == null ? -1 : payload.optInt("port", -1);
+            if (payload == null) {
+                DebugLog.e(TAG, "getPointerInputSocket returned no payload");
+                return;
+            }
+            DebugLog.d(TAG, "getPointerInputSocket response: " + payload.toString());
+            int port = payload.optInt("port", -1);
             if (port > 0) {
                 connectPointer(port);
+                return;
             }
+            String socketPath = payload.optString("socketPath", "");
+            try {
+                java.net.URI uri = new java.net.URI(socketPath);
+                if (uri.getPort() > 0) {
+                    connectPointer(uri.getPort());
+                    return;
+                }
+            } catch (Exception ignored) {
+            }
+            DebugLog.e(TAG, "no pointer socket port in response");
         });
     }
 

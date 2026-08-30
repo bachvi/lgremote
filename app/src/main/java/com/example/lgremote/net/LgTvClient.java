@@ -393,10 +393,17 @@ public class LgTvClient extends WebSocketClient {
             final JSONObject fPayload = payload;
             mainHandler.post(() -> fcb.onResult(fPayload));
         }
-        if (payload != null && (payload.has("volume") || payload.has("muted"))) {
-            final int volume = payload.optInt("volume", -1);
-            final boolean muted = payload.optBoolean("muted", false);
-            mainHandler.post(() -> listener.onVolume(volume, muted));
+        if (payload != null) {
+            JSONObject volStatus = payload.optJSONObject("volumeStatus");
+            if (payload.has("volume") || payload.has("muted") || volStatus != null) {
+                final int volume = volStatus != null
+                        ? volStatus.optInt("volume", -1)
+                        : payload.optInt("volume", -1);
+                final boolean muted = volStatus != null
+                        ? volStatus.optBoolean("muted", false)
+                        : payload.optBoolean("muted", false);
+                mainHandler.post(() -> listener.onVolume(volume, muted));
+            }
         }
     }
 
