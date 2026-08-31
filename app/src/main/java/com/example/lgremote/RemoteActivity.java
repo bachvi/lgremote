@@ -90,6 +90,10 @@ public class RemoteActivity extends AppCompatActivity implements LgTvConnection.
             finish();
         });
         findViewById(R.id.btnDebug).setOnClickListener(v -> showDebugDialog());
+        findViewById(R.id.btnDiag).setOnClickListener(v -> {
+            Toast.makeText(this, R.string.debug_diag_started, Toast.LENGTH_SHORT).show();
+            connection.runDiagnostics();
+        });
 
         findViewById(R.id.btnVolumeDown).setOnClickListener(v -> {
             connection.volumeDown();

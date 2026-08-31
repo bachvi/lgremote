@@ -455,6 +455,46 @@ public class LgTvConnection {
         }
     }
 
+    public void runDiagnostics() {
+        if (tvClient != null && tvClient.isOpen()) {
+            tvClient.sendCommand("ssap://com.webos.applicationManager/listLaunchPoints", null, result ->
+                    DebugLog.d(TAG, "listLaunchPoints: " + (result == null ? "null" : result.toString())));
+        }
+        final String[] steps = {"move", "click", "scroll", "button:UP", "button:OK", "button:BACK", "button:HOME"};
+        mainHandler.post(new Runnable() {
+            int i = 0;
+
+            @Override
+            public void run() {
+                if (i >= steps.length) {
+                    DebugLog.d(TAG, "diagnostics complete");
+                    return;
+                }
+                String step = steps[i++];
+                PointerClient pc = pointerClient;
+                if (pc == null || !pc.isOpen()) {
+                    DebugLog.d(TAG, "diag: pointer socket not open, skipping " + step);
+                } else {
+                    switch (step) {
+                        case "move":
+                            pc.move(3, 3);
+                            break;
+                        case "click":
+                            pc.click();
+                            break;
+                        case "scroll":
+                            pc.wheel(0, 2);
+                            break;
+                        default:
+                            pc.button(step.substring("button:".length()));
+                            break;
+                    }
+                }
+                mainHandler.postDelayed(this, 700);
+            }
+        });
+    }
+
     public void navigate(String key) {
         if (pointerClient != null && pointerClient.isOpen()) {
             pointerClient.button(key);

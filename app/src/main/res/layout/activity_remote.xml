@@ -72,6 +72,16 @@
             </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDiag"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="44dp"
+                android:layout_marginEnd="2dp"
+                android:text="@string/debug_diag"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnDebug"
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
