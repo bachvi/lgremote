@@ -36,7 +36,9 @@ import java.util.Collections;
  *   dx:0
  *   dy:3
  *   </pre>
- * Each command is terminated by a blank line.
+ *  Each command's last field is terminated by a single newline.  No trailing
+ *  blank line is appended: some webOS 4.x network-input sockets reject a
+ *  trailing blank line with WebSocket code 1008 "invalid message".
  */
 public class PointerClient extends WebSocketClient {
 
@@ -122,7 +124,6 @@ public class PointerClient extends WebSocketClient {
         for (String line : lines) {
             sb.append(line).append('\n');
         }
-        sb.append('\n');
         String message = sb.toString();
         DebugLog.d(TAG, "send: " + message.replace("\n", " | "));
         send(message);

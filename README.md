@@ -114,7 +114,7 @@ The register handshake mirrors the reference `aiowebostv` client:
 
 ### Pointer socket (`ws://<tv-ip>:3001`)
 
-The TV reports the pointer port in the response to `ssap://com.webos.service.networkinput/getPointerInputSocket`. The app connects there (falling back to `wss://` if `ws://` fails). Unlike the main socket, the pointer socket does **not** use JSON — it speaks a plain-text line protocol, one command per message (each field on its own line, terminated by a blank line):
+The TV reports the pointer port in the response to `ssap://com.webos.service.networkinput/getPointerInputSocket`. The app connects there (falling back to `wss://` if `ws://` fails). Unlike the main socket, the pointer socket does **not** use JSON — it speaks a plain-text line protocol, one command per message (each field on its own line; the message ends with the last field's newline, **no** trailing blank line — webOS 4.x rejects a trailing blank line with code `1008 invalid message`):
 
 - move: `type:move` / `dx:..` / `dy:..` / `down:0`
 - click: `type:click`
