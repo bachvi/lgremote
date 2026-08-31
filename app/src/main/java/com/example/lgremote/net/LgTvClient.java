@@ -232,6 +232,7 @@ public class LgTvClient extends WebSocketClient {
                     mainHandler.removeCallbacks(registerWatchdog);
                     handlePairingError(payload);
                 } else {
+                    DebugLog.d(TAG, "command error " + id + ": " + json.optString("error", ""));
                     handleCommandResponse(id, payload);
                 }
             }
@@ -466,13 +467,18 @@ public class LgTvClient extends WebSocketClient {
         sendCommand("ssap://tv/channelDown", null, null);
     }
 
-    public void openHome() {
+    public void openHome(Callback cb) {
         JSONObject p = new JSONObject();
         try {
             p.put("id", "com.webos.app.home");
         } catch (JSONException ignored) {
         }
-        sendCommand("ssap://system.launcher/launch", p, null);
+        sendCommand("ssap://system.launcher/launch", p, result -> {
+            DebugLog.d(TAG, "launch home response: " + (result == null ? "null" : result.toString()));
+            if (cb != null) {
+                cb.onResult(result);
+            }
+        });
     }
 
     public void closeApp() {

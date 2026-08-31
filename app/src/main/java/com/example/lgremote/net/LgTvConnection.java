@@ -47,7 +47,9 @@ public class LgTvConnection {
     private int state = STATE_DISCONNECTED;
     private int pointerAttempts = 0;
     private int connectAttempts = 0;
+    private int pointerReconnects = 0;
     private boolean pairingPinRequired = false;
+    private volatile boolean closing = false;
 
     public static synchronized LgTvConnection get(Context context) {
         if (sInstance == null) {
@@ -90,6 +92,8 @@ public class LgTvConnection {
 
     public synchronized void connect(TvDevice tv) {
         this.device = tv;
+        closing = false;
+        pointerReconnects = 0;
         closeClients();
         pointerAttempts = 0;
         connectAttempts = 0;
@@ -224,6 +228,7 @@ public class LgTvConnection {
     }
 
     private void closeClients() {
+        closing = true;
         closePointer();
         if (tvClient != null) {
             try {
@@ -292,16 +297,34 @@ public class LgTvConnection {
         final boolean ssl = pointerAttempts == 2;
         final int attempt = pointerAttempts;
 
+        final PointerClient[] holder = new PointerClient[1];
         PointerClient client = PointerClient.connectTo(device.ip, port, ssl, new PointerClient.Listener() {
             private boolean opened = false;
 
             @Override
             public void onOpen() {
                 opened = true;
+                pointerReconnects = 0;
+                DebugLog.d(TAG, "pointer socket opened (attempt " + attempt + ")");
             }
 
             @Override
             public void onClose(String reason) {
+                if (holder[0] == pointerClient) {
+                    pointerClient = null;
+                }
+                DebugLog.d(TAG, "pointer socket closed reason=" + reason
+                        + " state=" + state + " closing=" + closing);
+                if (state == STATE_CONNECTED && !closing && opened && pointerReconnects < 5) {
+                    pointerReconnects++;
+                    mainHandler.postDelayed(() -> {
+                        if (state == STATE_CONNECTED && !closing && pointerClient == null) {
+                            pointerAttempts = 0;
+                            DebugLog.d(TAG, "reconnecting pointer socket (" + pointerReconnects + ")");
+                            openPointer();
+                        }
+                    }, 1200);
+                }
             }
 
             @Override
@@ -312,6 +335,7 @@ public class LgTvConnection {
                 }
             }
         });
+        holder[0] = client;
         this.pointerClient = client;
     }
 
@@ -372,10 +396,17 @@ public class LgTvConnection {
     }
 
     public void home() {
-        if (pointerClient != null && pointerClient.isOpen()) {
+        boolean pointerOpen = pointerClient != null && pointerClient.isOpen();
+        boolean mainOpen = tvClient != null && tvClient.isOpen();
+        if (mainOpen) {
+            tvClient.openHome(result -> {
+                boolean ok = result != null && result.optBoolean("returnValue", false);
+                if (!ok && pointerOpen) {
+                    pointerClient.button("HOME");
+                }
+            });
+        } else if (pointerOpen) {
             pointerClient.button("HOME");
-        } else if (tvClient != null && tvClient.isOpen()) {
-            tvClient.openHome();
         }
     }
 

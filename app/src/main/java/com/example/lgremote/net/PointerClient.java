@@ -5,9 +5,7 @@ import android.os.Looper;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft_6455;
-import org.java_websocket.extensions.IExtension;
 import org.java_websocket.handshake.ServerHandshake;
-import org.java_websocket.protocols.Protocol;
 
 import java.net.URI;
 import java.util.Collections;
@@ -56,11 +54,7 @@ public class PointerClient extends WebSocketClient {
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public PointerClient(URI serverUri, Listener listener) {
-        super(serverUri,
-                new Draft_6455(Collections.<IExtension>emptyList(),
-                        Collections.singletonList(new Protocol("lgtv"))),
-                Collections.emptyMap(),
-                5000);
+        super(serverUri, new Draft_6455(), Collections.emptyMap(), 5000);
         this.listener = listener;
     }
 
