@@ -154,6 +154,7 @@ public class LgTvConnection {
                         }
                         setState(STATE_CONNECTED);
                         openPointer();
+                        dumpServiceList();
                     }
 
                     @Override
@@ -258,6 +259,28 @@ public class LgTvConnection {
     // ------------------------------------------------------------------
     // Pointer socket
     // ------------------------------------------------------------------
+
+    private void dumpServiceList() {
+        if (tvClient == null || !tvClient.isOpen()) {
+            return;
+        }
+        tvClient.sendCommand("ssap://api/getServiceList", null, result -> {
+            if (result == null) {
+                DebugLog.d(TAG, "getServiceList: no payload");
+                return;
+            }
+            StringBuilder sb = new StringBuilder("services:");
+            org.json.JSONArray arr = result.optJSONArray("services");
+            if (arr != null) {
+                for (int i = 0; i < arr.length(); i++) {
+                    sb.append(' ').append(arr.optString(i));
+                }
+            } else {
+                sb.append(' ').append(result.toString());
+            }
+            DebugLog.d(TAG, sb.toString());
+        });
+    }
 
     private void openPointer() {
         if (tvClient == null || !tvClient.isOpen() || device == null) {
@@ -398,16 +421,24 @@ public class LgTvConnection {
     public void home() {
         boolean pointerOpen = pointerClient != null && pointerClient.isOpen();
         boolean mainOpen = tvClient != null && tvClient.isOpen();
-        if (mainOpen) {
-            tvClient.openHome(result -> {
-                boolean ok = result != null && result.optBoolean("returnValue", false);
-                if (!ok && pointerOpen) {
+        if (!mainOpen) {
+            if (pointerOpen) {
+                pointerClient.button("HOME");
+            }
+            return;
+        }
+        tvClient.openHome(result -> {
+            boolean ok = result != null && result.optBoolean("returnValue", false);
+            if (ok) {
+                return;
+            }
+            tvClient.openApp("com.webos.app.home", result2 -> {
+                boolean ok2 = result2 != null && result2.optBoolean("returnValue", false);
+                if (!ok2 && pointerOpen) {
                     pointerClient.button("HOME");
                 }
             });
-        } else if (pointerOpen) {
-            pointerClient.button("HOME");
-        }
+        });
     }
 
     public void back() {

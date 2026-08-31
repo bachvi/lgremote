@@ -481,6 +481,20 @@ public class LgTvClient extends WebSocketClient {
         });
     }
 
+    public void openApp(String id, Callback cb) {
+        JSONObject p = new JSONObject();
+        try {
+            p.put("id", id);
+        } catch (JSONException ignored) {
+        }
+        sendCommand("ssap://system.launcher/open", p, result -> {
+            DebugLog.d(TAG, "open " + id + " response: " + (result == null ? "null" : result.toString()));
+            if (cb != null) {
+                cb.onResult(result);
+            }
+        });
+    }
+
     public void closeApp() {
         JSONObject p = new JSONObject();
         try {
