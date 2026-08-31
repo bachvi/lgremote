@@ -66,6 +66,10 @@ public class MainActivity extends AppCompatActivity
         debugText = findViewById(R.id.debugText);
         findViewById(R.id.debugPanel).setOnClickListener(v -> showDebug());
         findViewById(R.id.btnCopyDebug).setOnClickListener(v -> copyDebug());
+        findViewById(R.id.btnClearDebug).setOnClickListener(v -> {
+            DebugLog.clear();
+            showDebug();
+        });
 
         adapter = new TvAdapter(LayoutInflater.from(this), devices);
         adapter.setConnectListener(this);

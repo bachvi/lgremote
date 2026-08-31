@@ -5,6 +5,7 @@
     <string name="status_initial">Scan your network or add a TV manually</string>
     <string name="debug_title">Diagnostics (tap to refresh)</string>
     <string name="debug_copy">Copy</string>
+    <string name="debug_clear">Clear</string>
     <string name="debug_copied">Debug log copied</string>
     <string name="debug_log">Log</string>
     <string name="status_scanning">Scanning for TVs…</string>

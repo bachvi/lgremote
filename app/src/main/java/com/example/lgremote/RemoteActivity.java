@@ -164,7 +164,10 @@ public class RemoteActivity extends AppCompatActivity implements LgTvConnection.
                         Toast.makeText(this, R.string.debug_copied, Toast.LENGTH_SHORT).show();
                     }
                 })
-                .setNegativeButton(R.string.cancel, null)
+                .setNegativeButton(R.string.debug_clear, (d, w) -> {
+                    com.example.lgremote.net.DebugLog.clear();
+                    d.dismiss();
+                })
                 .show();
     }
 

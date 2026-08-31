@@ -372,7 +372,9 @@ public class LgTvConnection {
     }
 
     public void home() {
-        if (tvClient != null && tvClient.isOpen()) {
+        if (pointerClient != null && pointerClient.isOpen()) {
+            pointerClient.button("HOME");
+        } else if (tvClient != null && tvClient.isOpen()) {
             tvClient.openHome();
         }
     }

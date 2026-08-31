@@ -124,6 +124,19 @@
                 android:paddingRight="12dp"
                 android:text="@string/debug_copy"
                 android:textSize="12sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnClearDebug"
+                style="@style/RemoteButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:paddingLeft="12dp"
+                android:paddingRight="12dp"
+                android:text="@string/debug_clear"
+                android:textSize="12sp" />
         </LinearLayout>
 
         <ScrollView
