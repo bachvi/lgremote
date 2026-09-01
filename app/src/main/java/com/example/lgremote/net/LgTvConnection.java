@@ -464,12 +464,27 @@ public class LgTvConnection {
     }
 
     public void runDiagnostics() {
-        if (tvClient != null && tvClient.isOpen()) {
-            tvClient.sendCommand("ssap://com.webos.applicationManager/listLaunchPoints", null, result ->
+        LgTvClient client = tvClient;
+        if (client != null && client.isOpen()) {
+            client.sendCommand("ssap://com.webos.applicationManager/listLaunchPoints", null, result ->
                     DebugLog.d(TAG, "listLaunchPoints: " + (result == null ? "null" : result.toString())));
-            tvClient.getForegroundAppInfo(null);
+            client.getForegroundAppInfo(null);
+            client.sendCommand("ssap://media.controls/getVolume", null, r ->
+                    DebugLog.d(TAG, "media.controls/getVolume: " + (r == null ? "null" : r.toString())));
+            client.sendCommand("ssap://media.controls/play", null, r ->
+                    DebugLog.d(TAG, "media.controls/play: " + (r == null ? "null" : r.toString())));
+            client.sendCommand("ssap://media.controls/pause", null, r ->
+                    DebugLog.d(TAG, "media.controls/pause: " + (r == null ? "null" : r.toString())));
+            client.sendCommand("ssap://media.controls/channelUp", null, r ->
+                    DebugLog.d(TAG, "media.controls/channelUp: " + (r == null ? "null" : r.toString())));
+            client.sendCommand("ssap://media.controls/volumeUp", null, r ->
+                    DebugLog.d(TAG, "media.controls/volumeUp: " + (r == null ? "null" : r.toString())));
+            client.sendCommand("ssap://tv/getExternalInputList", null, r ->
+                    DebugLog.d(TAG, "tv/getExternalInputList: " + (r == null ? "null" : r.toString())));
+            client.sendCommand("ssap://system.launcher/getAppState", null, r ->
+                    DebugLog.d(TAG, "system.launcher/getAppState: " + (r == null ? "null" : r.toString())));
         }
-        final String[] steps = {"move", "click", "scroll", "button:UP", "button:OK", "button:BACK", "button:HOME", "rawHomeNoNL"};
+        final String[] steps = {"rawNewline", "jsonButton", "jsonCmdButton", "move", "button:UP", "rawHomeNoNL"};
         mainHandler.post(new Runnable() {
             int i = 0;
 
@@ -485,14 +500,17 @@ public class LgTvConnection {
                     DebugLog.d(TAG, "diag: pointer socket not open, skipping " + step);
                 } else {
                     switch (step) {
+                        case "rawNewline":
+                            pc.sendRaw("\n");
+                            break;
+                        case "jsonButton":
+                            pc.sendRaw("{\"type\":\"button\",\"name\":\"HOME\"}");
+                            break;
+                        case "jsonCmdButton":
+                            pc.sendRaw("{\"cmd\":\"button\",\"name\":\"HOME\"}");
+                            break;
                         case "move":
                             pc.move(3, 3);
-                            break;
-                        case "click":
-                            pc.click();
-                            break;
-                        case "scroll":
-                            pc.wheel(0, 2);
                             break;
                         case "rawHomeNoNL":
                             pc.sendRaw("type:button\nname:HOME");
