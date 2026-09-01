@@ -428,15 +428,23 @@ public class LgTvConnection {
             return;
         }
         tvClient.openHome(result -> {
-            boolean ok = result != null && result.optBoolean("returnValue", false);
-            if (ok) {
+            if (result != null && result.optBoolean("returnValue", false)) {
                 return;
             }
             tvClient.openApp("com.webos.app.home", result2 -> {
-                boolean ok2 = result2 != null && result2.optBoolean("returnValue", false);
-                if (!ok2 && pointerOpen) {
-                    pointerClient.button("HOME");
+                if (result2 != null && result2.optBoolean("returnValue", false)) {
+                    return;
                 }
+                // Last resort: close whatever is in the foreground to get back to the launcher.
+                tvClient.getForegroundAppInfo(fg -> {
+                    String appId = fg == null ? null : fg.optString("appId", "");
+                    DebugLog.d(TAG, "home fallback: foreground appId=" + appId);
+                    if (appId != null && !appId.isEmpty() && !"com.webos.app.home".equals(appId)) {
+                        tvClient.closeApp(appId, null);
+                    } else if (pointerOpen) {
+                        pointerClient.button("HOME");
+                    }
+                });
             });
         });
     }
@@ -459,6 +467,7 @@ public class LgTvConnection {
         if (tvClient != null && tvClient.isOpen()) {
             tvClient.sendCommand("ssap://com.webos.applicationManager/listLaunchPoints", null, result ->
                     DebugLog.d(TAG, "listLaunchPoints: " + (result == null ? "null" : result.toString())));
+            tvClient.getForegroundAppInfo(null);
         }
         final String[] steps = {"move", "click", "scroll", "button:UP", "button:OK", "button:BACK", "button:HOME", "rawHomeNoNL"};
         mainHandler.post(new Runnable() {

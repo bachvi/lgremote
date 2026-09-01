@@ -496,12 +496,30 @@ public class LgTvClient extends WebSocketClient {
     }
 
     public void closeApp() {
+        closeApp("com.webos.app.home", null);
+    }
+
+    public void closeApp(String id, Callback cb) {
         JSONObject p = new JSONObject();
         try {
-            p.put("id", "com.webos.app.home");
+            p.put("id", id);
         } catch (JSONException ignored) {
         }
-        sendCommand("ssap://system.launcher/close", p, null);
+        sendCommand("ssap://system.launcher/close", p, result -> {
+            DebugLog.d(TAG, "close " + id + " response: " + (result == null ? "null" : result.toString()));
+            if (cb != null) {
+                cb.onResult(result);
+            }
+        });
+    }
+
+    public void getForegroundAppInfo(Callback cb) {
+        sendCommand("ssap://com.webos.applicationManager/getForegroundAppInfo", null, result -> {
+            DebugLog.d(TAG, "foregroundAppInfo: " + (result == null ? "null" : result.toString()));
+            if (cb != null) {
+                cb.onResult(result);
+            }
+        });
     }
 
     public void turnOff() {
