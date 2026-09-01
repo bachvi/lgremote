@@ -92,9 +92,9 @@ public class LgTvConnection {
 
     public synchronized void connect(TvDevice tv) {
         this.device = tv;
-        closing = false;
         pointerReconnects = 0;
         closeClients();
+        closing = false;
         pointerAttempts = 0;
         connectAttempts = 0;
         pairingPinRequired = false;
@@ -460,7 +460,7 @@ public class LgTvConnection {
             tvClient.sendCommand("ssap://com.webos.applicationManager/listLaunchPoints", null, result ->
                     DebugLog.d(TAG, "listLaunchPoints: " + (result == null ? "null" : result.toString())));
         }
-        final String[] steps = {"move", "click", "scroll", "button:UP", "button:OK", "button:BACK", "button:HOME"};
+        final String[] steps = {"move", "click", "scroll", "button:UP", "button:OK", "button:BACK", "button:HOME", "rawHomeNoNL"};
         mainHandler.post(new Runnable() {
             int i = 0;
 
@@ -484,6 +484,9 @@ public class LgTvConnection {
                             break;
                         case "scroll":
                             pc.wheel(0, 2);
+                            break;
+                        case "rawHomeNoNL":
+                            pc.sendRaw("type:button\nname:HOME");
                             break;
                         default:
                             pc.button(step.substring("button:".length()));

@@ -113,6 +113,11 @@ public class PointerClient extends WebSocketClient {
         sendLine("type:button", "name:" + name);
     }
 
+    public void sendRaw(String message) {
+        DebugLog.d(TAG, "send raw: " + message.replace("\n", " | "));
+        send(message);
+    }
+
     private void sendLine(String... lines) {
         StringBuilder sb = new StringBuilder();
         for (String line : lines) {
