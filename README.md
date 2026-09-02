@@ -112,14 +112,14 @@ The register handshake mirrors the reference `aiowebostv` client:
 
 > On webOS 4.x the volume/mute/channel services live under `ssap://audio/*` and `ssap://tv/*`; the `ssap://media.controls/*` names used by newer firmware return `404 no such service or method` there.
 
-### Pointer socket (`ws://<tv-ip>:3001`)
+### Pointer socket
 
-The TV reports the pointer port in the response to `ssap://com.webos.service.networkinput/getPointerInputSocket`. The app connects there (falling back to `wss://` if `ws://` fails). Unlike the main socket, the pointer socket does **not** use JSON — it speaks a plain-text line protocol, one command per message (each field on its own line; the message ends with the last field's newline, **no** trailing blank line — webOS 4.x rejects a trailing blank line with code `1008 invalid message`):
+The TV returns a full `socketPath` (e.g. `ws://<tv-ip>:3000/resources/<token>/netinput.pointer.sock`) in the response to `ssap://com.webos.service.networkinput/getPointerInputSocket`. The app connects to that **full URI — including the resource path** (connecting to the bare host:port root `/` opens a socket but every message is rejected with code `1008 invalid message`). It falls back to `wss://` on the same host:port:path if `ws://` fails. Unlike the main socket, the pointer socket does **not** use JSON — it speaks a plain-text line protocol, one command per message. Each field ends with a newline and the message ends with a trailing blank line (the format used by ConnectSDK and aiowebostv):
 
-- move: `type:move` / `dx:..` / `dy:..` / `down:0`
-- click: `type:click`
-- scroll: `type:scroll` / `dx:0` / `dy:..`
-- buttons: `type:button` / `name:UP|DOWN|LEFT|RIGHT|OK|BACK|HOME`
+- move: `type:move` / `dx:..` / `dy:..` / `down:0` / blank line
+- click: `type:click` / blank line
+- scroll: `type:scroll` / `dx:0` / `dy:..` / blank line
+- buttons: `type:button` / `name:UP|DOWN|LEFT|RIGHT|OK|BACK|HOME` / blank line
 
 ## Project layout
 

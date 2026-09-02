@@ -292,26 +292,22 @@ public class LgTvConnection {
                 return;
             }
             DebugLog.d(TAG, "getPointerInputSocket response: " + payload.toString());
-            int port = payload.optInt("port", -1);
-            if (port > 0) {
-                connectPointer(port);
+            String socketPath = payload.optString("socketPath", "");
+            if (!socketPath.isEmpty()) {
+                connectPointer(socketPath);
                 return;
             }
-            String socketPath = payload.optString("socketPath", "");
-            try {
-                java.net.URI uri = new java.net.URI(socketPath);
-                if (uri.getPort() > 0) {
-                    connectPointer(uri.getPort());
-                    return;
-                }
-            } catch (Exception ignored) {
+            int port = payload.optInt("port", -1);
+            if (port > 0) {
+                connectPointer("ws://" + device.ip + ":" + port + "/");
+                return;
             }
-            DebugLog.d(TAG, "no pointer socket port in response, falling back to 3000");
-            connectPointer(3000);
+            DebugLog.d(TAG, "no pointer socket path in response, falling back to ws://ip:3000/");
+            connectPointer("ws://" + device.ip + ":3000/");
         });
     }
 
-    private void connectPointer(int port) {
+    private void connectPointer(String socketPath) {
         closePointer();
         if (pointerAttempts >= 2 || device == null) {
             return;
@@ -320,8 +316,24 @@ public class LgTvConnection {
         final boolean ssl = pointerAttempts == 2;
         final int attempt = pointerAttempts;
 
+        String uri;
+        try {
+            java.net.URI parsed = new java.net.URI(socketPath);
+            String scheme = ssl ? "wss" : (parsed.getScheme() == null ? "ws" : parsed.getScheme());
+            String host = parsed.getHost() != null ? parsed.getHost() : device.ip;
+            int port = parsed.getPort() > 0 ? parsed.getPort() : 3000;
+            String path = parsed.getPath();
+            if (path == null || path.isEmpty()) {
+                path = "/";
+            }
+            uri = scheme + "://" + host + ":" + port + path;
+        } catch (Exception e) {
+            uri = (ssl ? "wss" : "ws") + "://" + device.ip + ":3000/";
+        }
+        DebugLog.d(TAG, "pointer socket connecting to " + uri);
+
         final PointerClient[] holder = new PointerClient[1];
-        PointerClient client = PointerClient.connectTo(device.ip, port, ssl, new PointerClient.Listener() {
+        PointerClient client = PointerClient.connectTo(uri, ssl, new PointerClient.Listener() {
             private boolean opened = false;
 
             @Override
@@ -354,7 +366,7 @@ public class LgTvConnection {
             public void onError(String message) {
                 // The first attempt (ws) may fail on some firmwares; fall back to wss.
                 if (!opened && pointerAttempts == attempt) {
-                    connectPointer(port);
+                    connectPointer(socketPath);
                 }
             }
         });
@@ -484,9 +496,10 @@ public class LgTvConnection {
             client.sendCommand("ssap://system.launcher/getAppState", null, r ->
                     DebugLog.d(TAG, "system.launcher/getAppState: " + (r == null ? "null" : r.toString())));
         }
-        final String[] steps = {"rawNewline", "jsonButton", "jsonCmdButton", "move", "button:UP", "rawHomeNoNL"};
+        final String[] steps = {"move", "button:UP", "rawNewline", "jsonButton", "jsonCmdButton", "rawHomeNoNL"};
         mainHandler.post(new Runnable() {
             int i = 0;
+            int waitTries = 0;
 
             @Override
             public void run() {
@@ -494,33 +507,41 @@ public class LgTvConnection {
                     DebugLog.d(TAG, "diagnostics complete");
                     return;
                 }
-                String step = steps[i++];
                 PointerClient pc = pointerClient;
                 if (pc == null || !pc.isOpen()) {
-                    DebugLog.d(TAG, "diag: pointer socket not open, skipping " + step);
-                } else {
-                    switch (step) {
-                        case "rawNewline":
-                            pc.sendRaw("\n");
-                            break;
-                        case "jsonButton":
-                            pc.sendRaw("{\"type\":\"button\",\"name\":\"HOME\"}");
-                            break;
-                        case "jsonCmdButton":
-                            pc.sendRaw("{\"cmd\":\"button\",\"name\":\"HOME\"}");
-                            break;
-                        case "move":
-                            pc.move(3, 3);
-                            break;
-                        case "rawHomeNoNL":
-                            pc.sendRaw("type:button\nname:HOME");
-                            break;
-                        default:
-                            pc.button(step.substring("button:".length()));
-                            break;
+                    if (waitTries++ < 20) {
+                        mainHandler.postDelayed(this, 300);
+                        return;
                     }
+                    waitTries = 0;
+                    DebugLog.d(TAG, "diag: pointer socket not open, skipping " + steps[i]);
+                    i++;
+                    mainHandler.postDelayed(this, 300);
+                    return;
                 }
-                mainHandler.postDelayed(this, 700);
+                waitTries = 0;
+                String step = steps[i++];
+                switch (step) {
+                    case "move":
+                        pc.move(3, 3);
+                        break;
+                    case "rawNewline":
+                        pc.sendRaw("\n");
+                        break;
+                    case "jsonButton":
+                        pc.sendRaw("{\"type\":\"button\",\"name\":\"HOME\"}");
+                        break;
+                    case "jsonCmdButton":
+                        pc.sendRaw("{\"cmd\":\"button\",\"name\":\"HOME\"}");
+                        break;
+                    case "rawHomeNoNL":
+                        pc.sendRaw("type:button\nname:HOME");
+                        break;
+                    default:
+                        pc.button(step.substring("button:".length()));
+                        break;
+                }
+                mainHandler.postDelayed(this, 1500);
             }
         });
     }
