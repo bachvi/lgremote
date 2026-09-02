@@ -497,7 +497,7 @@ public class LgTvConnection {
             client.sendCommand("ssap://system.launcher/getAppState", null, r ->
                     DebugLog.d(TAG, "system.launcher/getAppState: " + (r == null ? "null" : r.toString())));
         }
-        final String[] steps = {"move", "button:UP", "rawNewline", "jsonButton", "jsonCmdButton", "rawHomeNoNL"};
+        final String[] steps = {"move", "button:UP", "button:ENTER", "rawNewline", "jsonButton", "jsonCmdButton", "rawHomeNoNL"};
         mainHandler.post(new Runnable() {
             int i = 0;
             int waitTries = 0;
@@ -549,7 +549,9 @@ public class LgTvConnection {
 
     public void navigate(String key) {
         if (pointerClient != null && pointerClient.isOpen()) {
-            pointerClient.button(key);
+            // webOS network-input names the OK/select key ENTER (ConnectSDK),
+            // not OK; this TV ignores name:OK.
+            pointerClient.button("OK".equals(key) ? "ENTER" : key);
         }
     }
 
