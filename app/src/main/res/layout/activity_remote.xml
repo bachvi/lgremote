@@ -102,83 +102,53 @@
                 android:tint="@color/text_secondary" />
         </LinearLayout>
 
-        <!-- Volume card -->
+        <!-- Volume indicator -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
+            android:layout_marginTop="12dp"
             android:background="@drawable/bg_card"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="16dp">
+            android:padding="10dp">
 
-            <ImageButton
-                android:id="@+id/btnVolumeDown"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:background="@drawable/bg_circle_button"
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
                 android:contentDescription="@string/volume"
-                android:padding="14dp"
-                android:src="@drawable/ic_volume_down"
-                android:tint="@color/text_primary" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="14dp"
-                android:layout_marginEnd="14dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/volumeText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:text="--"
-                    android:textColor="@color/text_primary"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-
-                <ProgressBar
-                    android:id="@+id/volumeBar"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="6dp"
-                    android:layout_marginTop="8dp"
-                    android:max="100"
-                    android:progress="0"
-                    android:progressTint="@color/accent"
-                    android:progressBackgroundTint="@color/surface_press" />
-            </LinearLayout>
-
-            <ImageButton
-                android:id="@+id/btnVolumeUp"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:background="@drawable/bg_circle_button"
-                android:contentDescription="@string/volume"
-                android:padding="14dp"
                 android:src="@drawable/ic_volume_up"
-                android:tint="@color/text_primary" />
-        </LinearLayout>
+                android:tint="@color/text_secondary" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnMute"
-            style="@style/RemoteButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:text="@string/mute"
-            app:icon="@drawable/ic_volume_off"
-            app:iconGravity="textStart"
-            app:iconTint="@color/accent" />
+            <TextView
+                android:id="@+id/volumeText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:minWidth="40dp"
+                android:gravity="center"
+                android:text="--"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <ProgressBar
+                android:id="@+id/volumeBar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="0dp"
+                android:layout_height="6dp"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:max="100"
+                android:progress="0"
+                android:progressTint="@color/accent"
+                android:progressBackgroundTint="@color/surface_press" />
+        </LinearLayout>
 
         <!-- Touchpad -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
             android:background="@drawable/bg_card"
             android:orientation="vertical"
             android:padding="12dp">
@@ -195,133 +165,179 @@
             <com.example.lgremote.ui.TouchpadView
                 android:id="@+id/touchpad"
                 android:layout_width="match_parent"
-                android:layout_height="230dp"
-                android:layout_marginTop="10dp"
+                android:layout_height="180dp"
+                android:layout_marginTop="8dp"
                 android:background="@drawable/bg_touchpad" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 android:gravity="center"
                 android:text="@string/touchpad_hint"
                 android:textColor="@color/touchpad_hint"
                 android:textSize="11sp" />
         </LinearLayout>
 
-        <!-- D-pad -->
+        <!-- Channel / D-pad / Volume cluster -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:gravity="center_horizontal"
-            android:orientation="vertical">
+            android:layout_marginTop="14dp"
+            android:baselineAligned="false"
+            android:gravity="top"
+            android:orientation="horizontal">
 
-            <ImageButton
-                android:id="@+id/btnUp"
-                android:layout_width="68dp"
-                android:layout_height="68dp"
-                android:background="@drawable/bg_circle_button"
-                android:contentDescription="@string/back"
-                android:padding="20dp"
-                android:src="@drawable/ic_arrow_up"
-                android:tint="@color/text_primary" />
-
+            <!-- Channel column -->
             <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <ImageButton
-                    android:id="@+id/btnLeft"
-                    android:layout_width="68dp"
-                    android:layout_height="68dp"
-                    android:background="@drawable/bg_circle_button"
-                    android:contentDescription="@string/back"
-                android:padding="20dp"
-                android:src="@drawable/ic_arrow_left"
-                android:tint="@color/text_primary" />
-
-                <TextView
-                    android:id="@+id/btnOk"
-                    android:layout_width="68dp"
-                    android:layout_height="68dp"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:background="@drawable/bg_ok_button"
-                    android:gravity="center"
-                    android:text="@string/ok"
-                    android:textColor="@color/black"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <ImageButton
-                    android:id="@+id/btnRight"
-                    android:layout_width="68dp"
-                    android:layout_height="68dp"
-                    android:background="@drawable/bg_circle_button"
-                    android:contentDescription="@string/back"
-                android:padding="20dp"
-                android:src="@drawable/ic_arrow_right"
-                android:tint="@color/text_primary" />
-            </LinearLayout>
-
-            <ImageButton
-                android:id="@+id/btnDown"
-                android:layout_width="68dp"
-                android:layout_height="68dp"
-                android:background="@drawable/bg_circle_button"
-                android:contentDescription="@string/back"
-                android:padding="20dp"
-                android:src="@drawable/ic_arrow_down"
-                android:tint="@color/text_primary" />
-        </LinearLayout>
-
-        <!-- Channel card -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:background="@drawable/bg_card"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="12dp">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnChannelDown"
-                style="@style/RemoteButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="CH −" />
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/channelText"
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnChannelUp"
+                    style="@style/RemoteButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp"
+                    android:text="CH +"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/channelText"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:gravity="center"
+                    android:text="CH"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnChannelDown"
+                    style="@style/RemoteButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp"
+                    android:text="CH −"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <!-- D-pad -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp"
-                android:minWidth="72dp"
-                android:gravity="center"
-                android:text="@string/channel"
-                android:textColor="@color/text_primary"
-                android:textSize="15sp"
-                android:textStyle="bold" />
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnChannelUp"
-                style="@style/RemoteButton"
+                <ImageButton
+                    android:id="@+id/btnUp"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:background="@drawable/bg_circle_button"
+                    android:contentDescription="@string/back"
+                    android:padding="14dp"
+                    android:src="@drawable/ic_arrow_up"
+                    android:tint="@color/text_primary" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <ImageButton
+                        android:id="@+id/btnLeft"
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:background="@drawable/bg_circle_button"
+                        android:contentDescription="@string/back"
+                        android:padding="14dp"
+                        android:src="@drawable/ic_arrow_left"
+                        android:tint="@color/text_primary" />
+
+                    <TextView
+                        android:id="@+id/btnOk"
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:layout_marginStart="6dp"
+                        android:layout_marginEnd="6dp"
+                        android:background="@drawable/bg_ok_button"
+                        android:gravity="center"
+                        android:text="@string/ok"
+                        android:textColor="@color/black"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+
+                    <ImageButton
+                        android:id="@+id/btnRight"
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:background="@drawable/bg_circle_button"
+                        android:contentDescription="@string/back"
+                        android:padding="14dp"
+                        android:src="@drawable/ic_arrow_right"
+                        android:tint="@color/text_primary" />
+                </LinearLayout>
+
+                <ImageButton
+                    android:id="@+id/btnDown"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:background="@drawable/bg_circle_button"
+                    android:contentDescription="@string/back"
+                    android:padding="14dp"
+                    android:src="@drawable/ic_arrow_down"
+                    android:tint="@color/text_primary" />
+            </LinearLayout>
+
+            <!-- Volume column -->
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="CH +" />
+                android:orientation="vertical">
+
+                <ImageButton
+                    android:id="@+id/btnVolumeUp"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="@drawable/bg_circle_button"
+                    android:contentDescription="@string/volume"
+                    android:padding="14dp"
+                    android:src="@drawable/ic_volume_up"
+                    android:tint="@color/text_primary" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnMute"
+                    style="@style/RemoteButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp"
+                    android:text="@string/mute"
+                    android:textSize="12sp" />
+
+                <ImageButton
+                    android:id="@+id/btnVolumeDown"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="@drawable/bg_circle_button"
+                    android:contentDescription="@string/volume"
+                    android:padding="14dp"
+                    android:src="@drawable/ic_volume_down"
+                    android:tint="@color/text_primary" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- Home / Back / Power -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
+            android:layout_marginTop="14dp"
             android:layout_marginBottom="20dp"
             android:orientation="horizontal">
 
