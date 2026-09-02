@@ -433,10 +433,13 @@ public class LgTvConnection {
     public void home() {
         boolean pointerOpen = pointerClient != null && pointerClient.isOpen();
         boolean mainOpen = tvClient != null && tvClient.isOpen();
+        if (pointerOpen) {
+            // The pointer HOME key is the reliable way to open the launcher,
+            // including on firmware where com.webos.app.home does not exist.
+            pointerClient.button("HOME");
+            return;
+        }
         if (!mainOpen) {
-            if (pointerOpen) {
-                pointerClient.button("HOME");
-            }
             return;
         }
         tvClient.openHome(result -> {
@@ -453,8 +456,6 @@ public class LgTvConnection {
                     DebugLog.d(TAG, "home fallback: foreground appId=" + appId);
                     if (appId != null && !appId.isEmpty() && !"com.webos.app.home".equals(appId)) {
                         tvClient.closeApp(appId, null);
-                    } else if (pointerOpen) {
-                        pointerClient.button("HOME");
                     }
                 });
             });

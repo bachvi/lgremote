@@ -64,6 +64,9 @@ public class PointerClient extends WebSocketClient {
                 client.setSocketFactory(SslUtils.trustAllSslSocketFactory());
             }
             client.setConnectionLostTimeout(15);
+            // java-websocket defaults TCP_NODELAY to false; without it Nagle
+            // delays every small pointer frame, making cursor motion jerky.
+            client.setTcpNoDelay(true);
             client.connect();
             return client;
         } catch (Exception e) {

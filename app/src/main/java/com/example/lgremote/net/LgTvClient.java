@@ -163,6 +163,7 @@ public class LgTvClient extends WebSocketClient {
                 client.setSocketFactory(SslUtils.trustAllSslSocketFactory());
             }
             client.setConnectionLostTimeout(15);
+            client.setTcpNoDelay(true);
             client.connect();
             return client;
         } catch (Exception e) {
